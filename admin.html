@@ -18,13 +18,12 @@
     body { font-family: system-ui, Segoe UI, Roboto, Arial, sans-serif; margin:0; padding:20px; background:var(--bg); color:var(--fg); }
     .box { background: var(--card-bg); padding:20px; border-radius:12px; max-width:900px; margin:auto; border:1px solid var(--card-bd); }
     textarea, input { width:100%; padding:10px; border-radius:8px; background:#0f1428; color:#eaf2ff; border:1px solid var(--card-bd); }
-    textarea { height:200px; }
+    textarea { height:220px; }
     button { padding:10px 16px; border:0; border-radius:8px; cursor:pointer; font-size:16px; }
     .btn-primary { background:#3b82f6; color:white; }
     .btn-red     { background:#ef4444; color:white; }
     .row-space { display:flex; gap:8px; align-items:center; justify-content:space-between; margin-top:10px; }
-    .row-left  { display:flex; gap:8px; align-items:center; }
-    .col-right { display:flex; flex-direction:column; gap:8px; align-items:flex-end; }
+    .row-left { display:flex; gap:8px; align-items:center; }
     .label { font-weight:600; margin-top:12px; display:block; }
     .muted { opacity:.75; font-size:13px; }
     .error { color:#ffb4b4; margin-top:8px; }
@@ -32,28 +31,12 @@
 
     /* Karten für Aktuell/In Vorbereitung (kompakter als im Index) */
     .cards { display:grid; grid-template-columns: 1fr 1fr; gap:14px; margin-top:14px; }
-    .card { background: linear-gradient(135deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
-            border:1px solid var(--card-bd); border-radius:14px; padding:16px; box-shadow: 0 10px 30px rgba(0,0,0,.25); }
+    .card { background: linear-gradient(135deg, rgba(255,255,255,.03), rgba(255,255,255,.01)); border:1px solid var(--card-bd); border-radius:14px; padding:16px; box-shadow: 0 10px 30px rgba(0,0,0,.25); }
     .card.aktuell { border-color: color-mix(in lab, var(--c-aktuell) 60%, transparent); }
     .card.vorb    { border-color: color-mix(in lab, var(--c-vorb) 60%, transparent); }
     .card .title { opacity:.9; font-weight:700; letter-spacing:.06em; text-transform: uppercase; font-size:14px; }
     .card .value { margin-top:.25em; font-weight:800; line-height:1.1; font-size: clamp(28px, 5vw, 64px); word-wrap:break-word; }
     @media (max-width: 740px) { .cards { grid-template-columns: 1fr; } }
-
-    /* Sichtbare Klassenliste mit Markierung */
-    .listViewWrap { margin-top:10px; }
-    .listViewHead { font-weight:600; margin-bottom:6px; }
-    .listView    { max-height:260px; overflow:auto; border:1px solid var(--card-bd); border-radius:8px; background:#0f1428; }
-    .item        { display:flex; justify-content:space-between; align-items:center;
-                   padding:8px 10px; border-bottom:1px solid rgba(255,255,255,.05); font-size:15px;
-                   cursor:pointer; user-select:none; }
-    .item:last-child { border-bottom:none; }
-    .item:hover  { background: rgba(255,255,255,.04); }
-    .tag { font-size:12px; opacity:.9; padding:2px 8px; border-radius:999px; border:1px solid rgba(255,255,255,.15); }
-    .item.is-aktuell { background: linear-gradient(90deg, color-mix(in lab, var(--c-aktuell) 18%, transparent), transparent); }
-    .item.is-aktuell .tag { border-color: color-mix(in lab, var(--c-aktuell) 70%, transparent); color: var(--fg); }
-    .item.is-vorb    { background: linear-gradient(90deg, color-mix(in lab, var(--c-vorb) 14%, transparent), transparent); }
-    .item.is-vorb .tag { border-color: color-mix(in lab, var(--c-vorb) 70%, transparent); color: var(--fg); }
   </style>
 </head>
 <body>
@@ -91,22 +74,13 @@
     <label class="label">Liste aller Klassen (eine pro Zeile)</label>
     <textarea id="klassenInput" placeholder="z. B.&#10;1A&#10;1B&#10;1C&#10;2A&#10;…"></textarea>
 
-    <!-- Buttons: links Start/Nächste, rechts Zurück + Neustart -->
+    <!-- Buttons: links Start/Nächste, rechts Zurück -->
     <div class="row-space">
       <div class="row-left">
         <button id="startNextBtn" class="btn-primary" title="Startet mit den ersten zwei Klassen; danach »Nächste Klasse«">Start</button>
         <span id="saveHint" class="saving" aria-live="polite"></span>
       </div>
-      <div class="col-right">
-        <button id="prevBtn" class="btn-red" title="Geht einen Schritt zurück (Vorbereitung → Aktuell; davorige Klasse → Vorbereitung)">Zurück</button>
-        <button id="resetBtn" class="btn-red" title="Setzt auf Startzustand zurück (Anzeige wieder »–/–«)">Neustart</button>
-      </div>
-    </div>
-
-    <!-- Sichtbare Liste mit Markierung -->
-    <div class="listViewWrap">
-      <div class="listViewHead">Klassenübersicht (Klick = direkt zu dieser Klasse springen)</div>
-      <div id="listeView" class="listView"></div>
+      <button id="prevBtn" class="btn-red" title="Geht einen Schritt zurück (Vorbereitung → Aktuell; davorige Klasse → Vorbereitung)">Zurück</button>
     </div>
 
     <div id="info" class="muted" style="margin-top:10px;"></div>
@@ -134,22 +108,20 @@
   const auth = getAuth(app);
   const db   = getDatabase(app);
 
-  const loginBox     = document.getElementById("loginBox");
-  const panel        = document.getElementById("panel");
-  const info         = document.getElementById("info");
+  const loginBox = document.getElementById("loginBox");
+  const panel    = document.getElementById("panel");
+  const info     = document.getElementById("info");
   const startNextBtn = document.getElementById("startNextBtn");
   const prevBtn      = document.getElementById("prevBtn");
-  const resetBtn     = document.getElementById("resetBtn");
   const klassenInput = document.getElementById("klassenInput");
   const saveHint     = document.getElementById("saveHint");
   const cardAktuell  = document.getElementById("cardAktuell");
   const cardVorb     = document.getElementById("cardVorb");
-  const listeView    = document.getElementById("listeView");
 
   // Zustand
-  let klassen = [];          // Array der Klassen
-  let pos = 0;               // Index der „Aktuell“-Klasse
-  let initialized = false;   // erst nach „Start“ true
+  let klassen = [];     // Array der Klassen
+  let pos = 0;          // Index der „Aktuell“-Klasse
+  let initialized = false; // erst nach „Start“ true
   let saveTimer = null;
 
   // --- Login ---
@@ -172,16 +144,15 @@
 
     // Beim Anmelden: Zustand laden (Liste, pos, initialized)
     await ladeSteuerung();
-
+    // UI füllen
     klassenInput.value = klassen.join("\n");
-    aktualisiereKarten();     // bis Start: –/–
+    aktualisiereKarten();     // zeigt –/– solange initialized=false
     aktualisiereStartNextLabel();
-    renderListeView();
     zeigeInfo();
 
-    // Falls bereits gestartet war, Anzeige synchronisieren (sonst: nicht schreiben)
+    // WICHTIG: KEIN automatisches Schreiben in 'anzeige', solange nicht initialized
     if (initialized) {
-      await schreibeAnzeige();
+      await schreibeAnzeige(); // nur synchronisieren, falls bereits gestartet war
     }
   });
 
@@ -203,22 +174,13 @@
   }
 
   async function schreibeAnzeige() {
-    const aktuell = initialized ? (klassen[pos] || "") : "";
-    const vorb    = initialized ? (klassen[pos + 1] || "") : "";
+    const aktuell = klassen[pos] || "";
+    const vorb    = klassen[pos + 1] || "";
     await update(ref(db, "anzeige"), {
       aktuell,
       vorbereitung: vorb,
       aktualisiertAm: Date.now()
     });
-  }
-
-  function aktualisiereKarten() {
-    cardAktuell.textContent = initialized ? (klassen[pos] || "—") : "—";
-    cardVorb.textContent    = initialized ? (klassen[pos + 1] || "—") : "—";
-  }
-
-  function aktualisiereStartNextLabel() {
-    startNextBtn.textContent = initialized ? "Nächste Klasse" : "Start";
   }
 
   function zeigeInfo() {
@@ -231,48 +193,16 @@
     `;
   }
 
-  // Sichtbare Liste rendern (mit Markierung + Klick zum Springen)
-  function renderListeView() {
-    listeView.innerHTML = "";
-    klassen.forEach((name, idx) => {
-      const row = document.createElement("div");
-      row.className = "item";
-      row.tabIndex = 0; // Tastaturfokus
-      if (initialized && idx === pos) row.classList.add("is-aktuell");
-      if (initialized && idx === pos + 1) row.classList.add("is-vorb");
+  function aktualisiereKarten() {
+    cardAktuell.textContent = initialized ? (klassen[pos] || "—") : "—";
+    cardVorb.textContent    = initialized ? (klassen[pos + 1] || "—") : "—";
+  }
 
-      const left = document.createElement("span");
-      left.textContent = name;
-
-      const right = document.createElement("span");
-      right.className = "tag";
-      if (initialized && idx === pos) right.textContent = "Aktuell";
-      else if (initialized && idx === pos + 1) right.textContent = "In Vorb.";
-
-      // >>> NEU: Klick/Enter springt direkt zu dieser Klasse <<<
-      const goToIndex = async () => {
-        if (klassen.length === 0) return;
-        initialized = true;   // implizit starten, falls noch nicht gestartet
-        pos = idx;            // auf diesen Eintrag springen
-        await speichereSteuerung();
-        await schreibeAnzeige();
-        aktualisiereKarten();
-        aktualisiereStartNextLabel();
-        renderListeView();
-        zeigeInfo();
-      };
-      row.addEventListener("click", goToIndex);
-      row.addEventListener("keydown", (e) => {
-        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); goToIndex(); }
-      });
-
-      row.append(left, right);
-      listeView.appendChild(row);
-    });
+  function aktualisiereStartNextLabel() {
+    startNextBtn.textContent = initialized ? "Nächste Klasse" : "Start";
   }
 
   // --- Auto-Save der Liste (debounced) ---
-  let saveTimer = null;
   function scheduleAutoSave() {
     saveHint.textContent = "Speichern …";
     if (saveTimer) clearTimeout(saveTimer);
@@ -282,19 +212,14 @@
         .split("\n")
         .map(x => x.trim())
         .filter(x => x.length > 0);
-
       // pos begrenzen, falls Liste kürzer wurde
       if (pos >= klassen.length) pos = Math.max(klassen.length - 1, 0);
-
       await speichereSteuerung();
-      // In die Anzeige nur schreiben, wenn schon gestartet
+      // NICHT automatisch in 'anzeige' schreiben, wenn noch nicht gestartet
       if (initialized) await schreibeAnzeige();
-
       aktualisiereKarten();
       aktualisiereStartNextLabel();
-      renderListeView();
       zeigeInfo();
-
       saveHint.textContent = "Gespeichert ✔";
       setTimeout(() => saveHint.textContent = "", 1500);
     }, 500);
@@ -304,22 +229,23 @@
   klassenInput.addEventListener("change", scheduleAutoSave);
   klassenInput.addEventListener("blur",  scheduleAutoSave);
 
-  // --- Bedienlogik: Start/Nächste, Zurück, Neustart ---
+  // --- Bedienlogik ---
   startNextBtn.onclick = async () => {
     if (klassen.length === 0) {
       alert("Bitte zuerst die Klassenliste eingeben (eine Klasse pro Zeile).");
       return;
     }
     if (!initialized) {
-      initialized = true; // Erststart
-    } else if (pos < klassen.length - 1) {
-      pos++; // nächste
+      // Erstmaliger Start: nicht vorwärts schalten, nur initialisieren und schreiben
+      initialized = true;
+    } else {
+      // Nächste
+      if (pos < klassen.length - 1) pos++;
     }
     await speichereSteuerung();
     await schreibeAnzeige();
     aktualisiereKarten();
     aktualisiereStartNextLabel();
-    renderListeView();
     zeigeInfo();
   };
 
@@ -330,19 +256,6 @@
     await schreibeAnzeige();
     aktualisiereKarten();
     aktualisiereStartNextLabel();
-    renderListeView();
-    zeigeInfo();
-  };
-
-  resetBtn.onclick = async () => {
-    // Liste bleibt erhalten; Anzeige geht auf –/–
-    initialized = false;
-    pos = 0;
-    await speichereSteuerung();
-    await schreibeAnzeige();      // schreibt leere Strings → Index zeigt „–/–“
-    aktualisiereKarten();
-    aktualisiereStartNextLabel();
-    renderListeView();
     zeigeInfo();
   };
 </script>
