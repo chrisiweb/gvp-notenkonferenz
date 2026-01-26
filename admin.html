@@ -18,12 +18,13 @@
     body { font-family: system-ui, Segoe UI, Roboto, Arial, sans-serif; margin:0; padding:20px; background:var(--bg); color:var(--fg); }
     .box { background: var(--card-bg); padding:20px; border-radius:12px; max-width:900px; margin:auto; border:1px solid var(--card-bd); }
     textarea, input { width:100%; padding:10px; border-radius:8px; background:#0f1428; color:#eaf2ff; border:1px solid var(--card-bd); }
-    textarea { height:220px; }
+    textarea { height:200px; }
     button { padding:10px 16px; border:0; border-radius:8px; cursor:pointer; font-size:16px; }
     .btn-primary { background:#3b82f6; color:white; }
     .btn-red     { background:#ef4444; color:white; }
     .row-space { display:flex; gap:8px; align-items:center; justify-content:space-between; margin-top:10px; }
-    .row-left { display:flex; gap:8px; align-items:center; }
+    .row-left  { display:flex; gap:8px; align-items:center; }
+    .col-right { display:flex; flex-direction:column; gap:8px; align-items:flex-end; }
     .label { font-weight:600; margin-top:12px; display:block; }
     .muted { opacity:.75; font-size:13px; }
     .error { color:#ffb4b4; margin-top:8px; }
@@ -31,12 +32,28 @@
 
     /* Karten für Aktuell/In Vorbereitung (kompakter als im Index) */
     .cards { display:grid; grid-template-columns: 1fr 1fr; gap:14px; margin-top:14px; }
-    .card { background: linear-gradient(135deg, rgba(255,255,255,.03), rgba(255,255,255,.01)); border:1px solid var(--card-bd); border-radius:14px; padding:16px; box-shadow: 0 10px 30px rgba(0,0,0,.25); }
+    .card { background: linear-gradient(135deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
+            border:1px solid var(--card-bd); border-radius:14px; padding:16px; box-shadow: 0 10px 30px rgba(0,0,0,.25); }
     .card.aktuell { border-color: color-mix(in lab, var(--c-aktuell) 60%, transparent); }
     .card.vorb    { border-color: color-mix(in lab, var(--c-vorb) 60%, transparent); }
     .card .title { opacity:.9; font-weight:700; letter-spacing:.06em; text-transform: uppercase; font-size:14px; }
     .card .value { margin-top:.25em; font-weight:800; line-height:1.1; font-size: clamp(28px, 5vw, 64px); word-wrap:break-word; }
     @media (max-width: 740px) { .cards { grid-template-columns: 1fr; } }
+
+    /* Sichtbare Klassenliste mit Markierung */
+    .listViewWrap { margin-top:10px; }
+    .listViewHead { font-weight:600; margin-bottom:6px; }
+    .listView    { max-height:260px; overflow:auto; border:1px solid var(--card-bd); border-radius:8px; background:#0f1428; }
+    .item        { display:flex; justify-content:space-between; align-items:center;
+                   padding:8px 10px; border-bottom:1px solid rgba(255,255,255,.05); font-size:15px;
+                   cursor:pointer; user-select:none; }
+    .item:last-child { border-bottom:none; }
+    .item:hover  { background: rgba(255,255,255,.04); }
+    .tag { font-size:12px; opacity:.9; padding:2px 8px; border-radius:999px; border:1px solid rgba(255,255,255,.15); }
+    .item.is-aktuell { background: linear-gradient(90deg, color-mix(in lab, var(--c-aktuell) 18%, transparent), transparent); }
+    .item.is-aktuell .tag { border-color: color-mix(in lab, var(--c-aktuell) 70%, transparent); color: var(--fg); }
+    .item.is-vorb    { background: linear-gradient(90deg, color-mix(in lab, var(--c-vorb) 14%, transparent), transparent); }
+    .item.is-vorb .tag { border-color: color-mix(in lab, var(--c-vorb) 70%, transparent); color: var(--fg); }
   </style>
 </head>
 <body>
@@ -74,191 +91,10 @@
     <label class="label">Liste aller Klassen (eine pro Zeile)</label>
     <textarea id="klassenInput" placeholder="z. B.&#10;1A&#10;1B&#10;1C&#10;2A&#10;…"></textarea>
 
-    <!-- Buttons: links Start/Nächste, rechts Zurück -->
+    <!-- Buttons: links Start/Nächste, rechts Zurück + Neustart -->
     <div class="row-space">
       <div class="row-left">
         <button id="startNextBtn" class="btn-primary" title="Startet mit den ersten zwei Klassen; danach »Nächste Klasse«">Start</button>
         <span id="saveHint" class="saving" aria-live="polite"></span>
       </div>
-      <button id="prevBtn" class="btn-red" title="Geht einen Schritt zurück (Vorbereitung → Aktuell; davorige Klasse → Vorbereitung)">Zurück</button>
-    </div>
-
-    <div id="info" class="muted" style="margin-top:10px;"></div>
-  </div>
-</div>
-
-<script type="module">
-  // --- Deine Firebase Config ---
-  const firebaseConfig = {
-    apiKey: "AIzaSyCuLVnVCnpc1JPO5eRsUpwOdTjacZ6cgso",
-    authDomain: "gvp-notenkonferenz.firebaseapp.com",
-    databaseURL: "https://gvp-notenkonferenz-default-rtdb.europe-west1.firebasedatabase.app",
-    projectId: "gvp-notenkonferenz",
-    storageBucket: "gvp-notenkonferenz.appspot.com",
-    messagingSenderId: "443453428623",
-    appId: "1:443453428623:web:3d3640bfe6ed2c38e871fa",
-    measurementId: "G-SVZX9DEJNP"
-  };
-
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-  import { getDatabase, ref, get, set, update } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
-
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db   = getDatabase(app);
-
-  const loginBox = document.getElementById("loginBox");
-  const panel    = document.getElementById("panel");
-  const info     = document.getElementById("info");
-  const startNextBtn = document.getElementById("startNextBtn");
-  const prevBtn      = document.getElementById("prevBtn");
-  const klassenInput = document.getElementById("klassenInput");
-  const saveHint     = document.getElementById("saveHint");
-  const cardAktuell  = document.getElementById("cardAktuell");
-  const cardVorb     = document.getElementById("cardVorb");
-
-  // Zustand
-  let klassen = [];     // Array der Klassen
-  let pos = 0;          // Index der „Aktuell“-Klasse
-  let initialized = false; // erst nach „Start“ true
-  let saveTimer = null;
-
-  // --- Login ---
-  document.getElementById("loginBtn").onclick = async () => {
-    const email = (document.getElementById("email").value || "").trim();
-    const pass  = (document.getElementById("passwort").value || "").trim();
-    document.getElementById("loginError").textContent = "";
-    try {
-      await signInWithEmailAndPassword(auth, email, pass);
-    } catch (err) {
-      document.getElementById("loginError").textContent = err?.message ?? String(err);
-    }
-  };
-
-  onAuthStateChanged(auth, async (user) => {
-    const signedIn = !!user;
-    loginBox.style.display = signedIn ? "none" : "";
-    panel.style.display    = signedIn ? "" : "none";
-    if (!signedIn) return;
-
-    // Beim Anmelden: Zustand laden (Liste, pos, initialized)
-    await ladeSteuerung();
-    // UI füllen
-    klassenInput.value = klassen.join("\n");
-    aktualisiereKarten();     // zeigt –/– solange initialized=false
-    aktualisiereStartNextLabel();
-    zeigeInfo();
-
-    // WICHTIG: KEIN automatisches Schreiben in 'anzeige', solange nicht initialized
-    if (initialized) {
-      await schreibeAnzeige(); // nur synchronisieren, falls bereits gestartet war
-    }
-  });
-
-  // --- Persistenz: steuerung { liste, pos, initialized } ---
-  async function ladeSteuerung() {
-    const snap = await get(ref(db, "steuerung"));
-    const v = snap.exists() ? snap.val() : {};
-    klassen     = Array.isArray(v.liste) ? v.liste : [];
-    pos         = Number.isInteger(v.pos) ? v.pos : 0;
-    initialized = typeof v.initialized === "boolean" ? v.initialized : false;
-
-    // Pos begrenzen
-    if (pos < 0) pos = 0;
-    if (pos >= Math.max(klassen.length, 1)) pos = Math.max(klassen.length - 1, 0);
-  }
-
-  async function speichereSteuerung() {
-    await set(ref(db, "steuerung"), { liste: klassen, pos, initialized });
-  }
-
-  async function schreibeAnzeige() {
-    const aktuell = klassen[pos] || "";
-    const vorb    = klassen[pos + 1] || "";
-    await update(ref(db, "anzeige"), {
-      aktuell,
-      vorbereitung: vorb,
-      aktualisiertAm: Date.now()
-    });
-  }
-
-  function zeigeInfo() {
-    const a = (initialized ? (klassen[pos] || "—") : "—");
-    const v = (initialized ? (klassen[pos + 1] || "—") : "—");
-    info.innerHTML = `
-      <div>Aktuell: <b>${a}</b></div>
-      <div>In Vorbereitung: <b>${v}</b></div>
-      <div>Position: ${klassen.length ? (pos + 1) : 0} / ${klassen.length} ${initialized ? "" : "(noch nicht gestartet)"}</div>
-    `;
-  }
-
-  function aktualisiereKarten() {
-    cardAktuell.textContent = initialized ? (klassen[pos] || "—") : "—";
-    cardVorb.textContent    = initialized ? (klassen[pos + 1] || "—") : "—";
-  }
-
-  function aktualisiereStartNextLabel() {
-    startNextBtn.textContent = initialized ? "Nächste Klasse" : "Start";
-  }
-
-  // --- Auto-Save der Liste (debounced) ---
-  function scheduleAutoSave() {
-    saveHint.textContent = "Speichern …";
-    if (saveTimer) clearTimeout(saveTimer);
-    saveTimer = setTimeout(async () => {
-      // Liste übernehmen
-      klassen = klassenInput.value
-        .split("\n")
-        .map(x => x.trim())
-        .filter(x => x.length > 0);
-      // pos begrenzen, falls Liste kürzer wurde
-      if (pos >= klassen.length) pos = Math.max(klassen.length - 1, 0);
-      await speichereSteuerung();
-      // NICHT automatisch in 'anzeige' schreiben, wenn noch nicht gestartet
-      if (initialized) await schreibeAnzeige();
-      aktualisiereKarten();
-      aktualisiereStartNextLabel();
-      zeigeInfo();
-      saveHint.textContent = "Gespeichert ✔";
-      setTimeout(() => saveHint.textContent = "", 1500);
-    }, 500);
-  }
-
-  klassenInput.addEventListener("input", scheduleAutoSave);
-  klassenInput.addEventListener("change", scheduleAutoSave);
-  klassenInput.addEventListener("blur",  scheduleAutoSave);
-
-  // --- Bedienlogik ---
-  startNextBtn.onclick = async () => {
-    if (klassen.length === 0) {
-      alert("Bitte zuerst die Klassenliste eingeben (eine Klasse pro Zeile).");
-      return;
-    }
-    if (!initialized) {
-      // Erstmaliger Start: nicht vorwärts schalten, nur initialisieren und schreiben
-      initialized = true;
-    } else {
-      // Nächste
-      if (pos < klassen.length - 1) pos++;
-    }
-    await speichereSteuerung();
-    await schreibeAnzeige();
-    aktualisiereKarten();
-    aktualisiereStartNextLabel();
-    zeigeInfo();
-  };
-
-  prevBtn.onclick = async () => {
-    if (!initialized || klassen.length === 0) return;
-    if (pos > 0) pos--;
-    await speichereSteuerung();
-    await schreibeAnzeige();
-    aktualisiereKarten();
-    aktualisiereStartNextLabel();
-    zeigeInfo();
-  };
-</script>
-
-</body>
-</html>
+      <div class="col-right">
