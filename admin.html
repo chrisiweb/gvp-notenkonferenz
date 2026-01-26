@@ -1,4 +1,3 @@
-
 <!doctype html>
 <html lang="de">
 <head>
@@ -13,13 +12,13 @@
     textarea { height:220px; }
     button { padding:10px 16px; border:0; border-radius:8px; cursor:pointer; font-size:16px; }
     .btn-primary { background:#3b82f6; color:white; }
-    .btn-green   { background:#22c55e; color:white; }
     .btn-red     { background:#ef4444; color:white; }
-    .row { display:flex; gap:8px; align-items:center; }
-    .row-space { display:flex; gap:8px; align-items:center; justify-content:space-between; }
+    .row-space { display:flex; gap:8px; align-items:center; justify-content:space-between; margin-top:10px; }
+    .row-left { display:flex; gap:8px; align-items:center; }
     .label { font-weight:600; margin-top:12px; display:block; }
     .muted { opacity:.75; font-size:13px; }
     .error { color:#ffb4b4; margin-top:8px; }
+    .saving { opacity:.7; font-size:12px; }
   </style>
 </head>
 <body>
@@ -31,15 +30,13 @@
   <div id="loginBox">
     <label class="label">E‑Mail</label>
     <input id="email" type="email" autocomplete="username" />
-
     <label class="label">Passwort</label>
     <input id="passwort" type="password" autocomplete="current-password" />
-
-    <div class="row">
+    <div class="row-left">
       <button id="loginBtn" class="btn-primary">Anmelden</button>
     </div>
     <div id="loginError" class="error"></div>
-    <div class="muted" style="margin-top:6px;">Für GitHub Pages muss die Domain <code>chrisiweb.github.io</code> unter <i>Authentifizierung → Einstellungen → Autorisierte Domains</i> freigegeben sein.</div>
+    <div class="muted" style="margin-top:6px;">Für GitHub Pages muss die Domain <code>chrisiweb.github.io</code> in Firebase unter <i>Authentifizierung → Einstellungen → Autorisierte Domains</i> freigegeben sein.</div>
   </div>
 
   <!-- Panel -->
@@ -47,11 +44,11 @@
     <label class="label">Liste aller Klassen (eine pro Zeile)</label>
     <textarea id="klassenInput" placeholder="z. B.&#10;1A&#10;1B&#10;1C&#10;2A&#10;…"></textarea>
 
-    <!-- Buttonzeile: links der Start/Nächste-Button; rechts der Zurück-Button -->
-    <div class="row-space" style="margin-top:10px;">
-      <div class="row">
-        <button id="startNextBtn" class="btn-primary" title="Startet mit den ersten zwei Klassen; danach immer &quot;Nächste Klasse&quot;">Start</button>
-        <button id="speichernListeBtn" class="btn-green" title="Nur Liste speichern (ohne Vor-/Aktuellenwechsel)">Liste speichern</button>
+    <!-- Buttons: links der einzige Hauptbutton (Start/Nächste), rechts Zurück -->
+    <div class="row-space">
+      <div class="row-left">
+        <button id="startNextBtn" class="btn-primary" title="Startet mit den ersten zwei Klassen; danach immer »Nächste Klasse«">Start</button>
+        <span id="saveHint" class="saving" aria-live="polite"></span>
       </div>
       <button id="prevBtn" class="btn-red" title="Geht einen Schritt zurück (Vorbereitung → Aktuell; davorige Klasse → Vorbereitung)">Zurück</button>
     </div>
@@ -84,15 +81,15 @@
   const loginBox = document.getElementById("loginBox");
   const panel    = document.getElementById("panel");
   const info     = document.getElementById("info");
-
-  const startNextBtn      = document.getElementById("startNextBtn");
-  const speichernListeBtn = document.getElementById("speichernListeBtn");
-  const prevBtn           = document.getElementById("prevBtn");
-  const klassenInput      = document.getElementById("klassenInput");
+  const startNextBtn = document.getElementById("startNextBtn");
+  const prevBtn      = document.getElementById("prevBtn");
+  const klassenInput = document.getElementById("klassenInput");
+  const saveHint     = document.getElementById("saveHint");
 
   // interner Zustand
   let klassen = [];   // Array der Klassen
-  let pos = 0;        // Index der "Aktuell" Klasse in klassen
+  let pos = 0;        // Index der "Aktuell"-Klasse in klassen
+  let saveTimer = null;
 
   // --- Login ---
   document.getElementById("loginBtn").onclick = async () => {
@@ -114,16 +111,17 @@
 
     // Beim Anmelden: gespeicherte Liste und Position laden
     await ladeSteuerung();
-    // Button-Beschriftung abhängig davon, ob wir noch am Anfang sind
+    // Button-Beschriftung abhängig von pos
     aktualisiereStartNextLabel();
     // Texteingabe mit gespeicherter Liste füllen
     klassenInput.value = klassen.join("\n");
     zeigeInfo();
+    // Anzeige sofort mit geladenem Zustand synchronisieren
+    await schreibeAnzeige();
   });
 
-  // --- Daten laden/speichern (Persistenz) ---
+  // --- Persistenz: steuerung/liste & steuerung/pos ---
   async function ladeSteuerung() {
-    // Struktur in DB: steuerung: { liste: [..], pos: 0 }
     const snap = await get(ref(db, "steuerung"));
     const v = snap.exists() ? snap.val() : {};
     klassen = Array.isArray(v.liste) ? v.liste : [];
@@ -158,58 +156,53 @@
   }
 
   function aktualisiereStartNextLabel() {
-    // "Start" nur dann, wenn pos==0 und Anzeige noch nicht initial gesetzt wurde
-    // Praktisch: Wenn keine Daten in "anzeige" sind oder pos==0 -> "Start"
     startNextBtn.textContent = (pos === 0 ? "Start" : "Nächste Klasse");
   }
 
-  // --- Bedienlogik ---
-  speichernListeBtn.onclick = async () => {
-    // Liste aus Text übernehmen, pos belassen
-    klassen = klassenInput.value
-      .split("\n")
-      .map(x => x.trim())
-      .filter(x => x.length > 0);
-    // pos validieren (falls Liste kürzer wurde)
-    if (pos >= klassen.length) pos = Math.max(klassen.length - 1, 0);
-    await speichereSteuerung();
-    await schreibeAnzeige();   // Anzeige auf aktuelle pos/liste synchronisieren
-    aktualisiereStartNextLabel();
-    zeigeInfo();
-  };
+  // --- Auto-Save der Liste (debounced) ---
+  function scheduleAutoSave() {
+    saveHint.textContent = "Speichern …";
+    if (saveTimer) clearTimeout(saveTimer);
+    saveTimer = setTimeout(async () => {
+      // Liste übernehmen
+      klassen = klassenInput.value
+        .split("\n")
+        .map(x => x.trim())
+        .filter(x => x.length > 0);
+      // pos begrenzen, falls Liste kürzer wurde
+      if (pos >= klassen.length) pos = Math.max(klassen.length - 1, 0);
+      await speichereSteuerung();
+      await schreibeAnzeige();
+      aktualisiereStartNextLabel();
+      zeigeInfo();
+      saveHint.textContent = "Gespeichert ✔";
+      setTimeout(() => saveHint.textContent = "", 1500);
+    }, 500); // 0,5s nach letzter Eingabe speichern
+  }
 
+  klassenInput.addEventListener("input", scheduleAutoSave);
+  klassenInput.addEventListener("change", scheduleAutoSave);
+  klassenInput.addEventListener("blur",  scheduleAutoSave);
+
+  // --- Bedienlogik ---
   startNextBtn.onclick = async () => {
-    // Wenn Liste leer → nichts tun
     if (klassen.length === 0) {
-      alert("Bitte zuerst die Klassenliste eingeben (eine Klasse pro Zeile) und speichern/Start drücken.");
+      alert("Bitte zuerst die Klassenliste eingeben (eine Klasse pro Zeile).");
       return;
     }
-    // Falls wir am Start sind (pos==0 und Anzeige evtl. leer), setzen wir einfach die ersten beiden
-    // Danach: pos um 1 erhöhen = "Nächste Klasse"
-    if (pos < klassen.length - 1) {
-      // Beim ersten Klick mit pos==0 setzen wir einfach – danach immer weiter
-      if (startNextBtn.textContent === "Start") {
-        // nicht erhöhen; nur initiale Anzeige setzen
-      } else {
-        pos++;
-      }
-    } else {
-      // am Ende der Liste bleibt Vorbereitung leer
-      if (startNextBtn.textContent !== "Start") {
-        // pos bleibt auf letztem Element
-      }
+    // Bei erstem Klick (Start) nur initial setzen; danach vorwärts schieben
+    if (startNextBtn.textContent !== "Start") {
+      if (pos < klassen.length - 1) pos++;
     }
     await speichereSteuerung();
     await schreibeAnzeige();
     aktualisiereStartNextLabel();
     zeigeInfo();
-    // Nach dem ersten Klick immer "Nächste Klasse"
     startNextBtn.textContent = "Nächste Klasse";
   };
 
   prevBtn.onclick = async () => {
     if (klassen.length === 0) return;
-    // Ein Schritt zurück: pos-1 (mind. 0)
     if (pos > 0) pos--;
     await speichereSteuerung();
     await schreibeAnzeige();
