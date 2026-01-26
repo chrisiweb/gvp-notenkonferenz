@@ -1,1 +1,75 @@
-TEST2
+
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Notenkonferenz – Anzeige</title>
+  <meta name="robots" content="noindex,nofollow" />
+  <style>
+    :root {
+      --bg: #0b1020;
+      --fg: #eaf2ff;
+      --color-aktuell: #0ea5e9;   /* hellblau */
+      --color-vorb:    #22c55e;   /* grün */
+    }
+    html, body { height: 100%; margin: 0; background: var(--bg); color: var(--fg); font-family: system-ui, Segoe UI, Roboto, Arial, sans-serif; }
+    .wrap { display: grid; grid-template-rows: 1fr 1fr; gap: 28px; padding: clamp(12px, 3vw, 40px); height: 100%; box-sizing: border-box; }
+    .card { border-radius: 24px; display: flex; flex-direction: column; justify-content: center; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+    .aktuell { background: linear-gradient(135deg, color-mix(in lab, var(--color-aktuell) 25%, transparent), rgba(255,255,255,.04)); border: 2px solid color-mix(in lab, var(--color-aktuell) 60%, transparent); }
+    .vorb    { background: linear-gradient(135deg, color-mix(in lab, var(--color-vorb) 25%, transparent), rgba(255,255,255,.04)); border: 2px solid color-mix(in lab, var(--color-vorb) 60%, transparent); }
+    .label { opacity: .85; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; font-size: clamp(14px, 2.2vw, 20px); }
+    .value { margin-top: .25em; font-weight: 800; line-height: 1.1; font-size: clamp(36px, 8vw, 120px); word-wrap: break-word; }
+    .footer { position: fixed; bottom: 10px; right: 16px; opacity: .5; font-size: 12px; }
+    @media (orientation: portrait) {
+      .wrap { grid-template-rows: auto auto; }
+      .value { font-size: clamp(36px, 10vw, 80px); }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="card aktuell">
+      <div class="label">Aktuell</div>
+      <div id="aktuell" class="value">–</div>
+    </section>
+    <section class="card vorb">
+      <div class="label">In Vorbereitung</div>
+      <div id="vorb" class="value">–</div>
+    </section>
+  </div>
+  <div class="footer" id="ts"></div>
+
+  <script type="module">
+    import { initializeApp }   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+    // TODO: Ersetze das unten mit DEINEN Firebase-Config-Werten
+    const firebaseConfig = {
+      apiKey: "…",
+      authDomain: "…",
+      databaseURL: "…",
+      projectId: "…",
+      storageBucket: "…",
+      messagingSenderId: "…",
+      appId: "…"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db  = getDatabase(app);
+    const aktuellEl = document.getElementById('aktuell');
+    const vorbEl    = document.getElementById('vorb');
+    const tsEl      = document.getElementById('ts');
+
+    onValue(ref(db, 'anzeige'), (snap) => {
+      const v = snap.val() || {};
+      aktuellEl.textContent = v.aktuell || '–';
+      vorbEl.textContent    = v.vorbereitung || '–';
+      document.documentElement.style.setProperty('--color-aktuell', v.colorAktuell || '#0ea5e9');
+      document.documentElement.style.setProperty('--color-vorb',    v.colorVorb    || '#22c55e');
+      const dt = v.updatedAt ? new Date(v.updatedAt) : null;
+      tsEl.textContent = dt ? `Stand: ${dt.toLocaleString('de-AT')}` : '';
+    });
+  </script>
+</body>
+</html>

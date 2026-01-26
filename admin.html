@@ -1,0 +1,158 @@
+
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Notenkonferenz – Admin</title>
+  <meta name="robots" content="noindex,nofollow" />
+  <style>
+    body { font-family: system-ui, Segoe UI, Roboto, Arial, sans-serif; margin: 0; background:#0b1020; color:#eaf2ff; }
+    .page { max-width: 820px; margin: 0 auto; padding: clamp(12px, 3vw, 32px); }
+    h1 { margin: .2em 0 .6em; }
+    form, .panel { background: #151a31; border: 1px solid #2a335f; border-radius: 14px; padding: 16px; }
+    label { display:block; margin:.6em 0 .2em; font-weight:600; }
+    input[type="text"] { width: 100%; padding: 10px 12px; font-size: 18px; border-radius: 10px; border:1px solid #394273; background:#0f1428; color:#eaf2ff; }
+    input[type="color"]{ width: 54px; height: 38px; border: none; background: transparent; }
+    .row { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: end; }
+    .btn { margin-top: 14px; padding: 10px 14px; font-size: 16px; background:#3b82f6; color:white; border:none; border-radius:10px; cursor:pointer; }
+    .btn.secondary { background:#64748b; }
+    .grid2 { display:grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .hint { opacity: .75; font-size: 13px; margin-top: .4em; }
+    .topbar { display:flex; align-items:center; justify-content:space-between; margin-bottom: 14px; }
+    .err { color:#ffb4b4; margin-top:8px; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="topbar">
+      <h1>Admin – Notenkonferenz</h1>
+      <button id="logout" class="btn secondary" style="display:none;">Abmelden</button>
+    </div>
+
+    <form id="login">
+      <label>E‑Mail</label>
+      <input id="email" type="email" required />
+      <label>Passwort</label>
+      <input id="pw" type="password" required />
+      <button class="btn" type="submit">Anmelden</button>
+      <div id="loginErr" class="err"></div>
+    </form>
+
+    <div id="panel" class="panel" style="display:none;">
+      <div class="grid2">
+        <div>
+          <label>Aktuell</label>
+          <div class="row">
+            <input id="aktuell" type="text" placeholder="z. B. 3A" />
+            <input id="colorAktuell" type="color" value="#0ea5e9" title="Farbe Aktuell" />
+          </div>
+        </div>
+        <div>
+          <label>In Vorbereitung</label>
+          <div class="row">
+            <input id="vorb" type="text" placeholder="z. B. 3B" />
+            <input id="colorVorb" type="color" value="#22c55e" title="Farbe Vorbereitung" />
+          </div>
+        </div>
+      </div>
+      <button id="save" class="btn">Speichern & Live anzeigen</button>
+      <div class="hint">Tipp: Mit <kbd>Enter</kbd> in einem Feld speichern.</div>
+      <div id="saveMsg" class="hint"></div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getDatabase, ref, onValue, update } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+    // TODO: Ersetze das unten mit DEINEN Firebase-Config-Werten (gleich wie in index.html)
+    const firebaseConfig = {
+      apiKey: "…",
+      authDomain: "…",
+      databaseURL: "…",
+      projectId: "…",
+      storageBucket: "…",
+      messagingSenderId: "…",
+      appId: "…"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db   = getDatabase(app);
+
+    const $ = sel => document.querySelector(sel);
+    const ui = {
+      login: $('#login'),
+      email: $('#email'),
+      pw:    $('#pw'),
+      loginErr: $('#loginErr'),
+      panel: $('#panel'),
+      aktuell: $('#aktuell'),
+      vorb: $('#vorb'),
+      colorAktuell: $('#colorAktuell'),
+      colorVorb: $('#colorVorb'),
+      save: $('#save'),
+      saveMsg: $('#saveMsg'),
+      logout: $('#logout')
+    };
+
+    ui.login.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      ui.loginErr.textContent = '';
+      try {
+        await signInWithEmailAndPassword(auth, ui.email.value, ui.pw.value);
+      } catch (err) {
+        ui.loginErr.textContent = 'Login fehlgeschlagen: ' + (err?.message ?? err);
+      }
+    });
+
+    ui.logout.addEventListener('click', () => signOut(auth));
+
+    onAuthStateChanged(auth, (user) => {
+      const signedIn = !!user;
+      ui.login.style.display = signedIn ? 'none' : '';
+      ui.panel.style.display = signedIn ? '' : 'none';
+      ui.logout.style.display = signedIn ? '' : 'none';
+      ui.saveMsg.textContent = '';
+      if (signedIn) {
+        // Bestehende Werte laden & live spiegeln
+        onValue(ref(db, 'anzeige'), (snap) => {
+          const v = snap.val() || {};
+          if (document.activeElement !== ui.aktuell) ui.aktuell.value = v.aktuell || '';
+          if (document.activeElement !== ui.vorb)    ui.vorb.value    = v.vorbereitung || '';
+          if (!document.activeElement || document.activeElement.type !== 'color') {
+            ui.colorAktuell.value = v.colorAktuell || '#0ea5e9';
+            ui.colorVorb.value    = v.colorVorb    || '#22c55e';
+          }
+        });
+      }
+    });
+
+    async function speichern() {
+      ui.save.disabled = true;
+      ui.saveMsg.textContent = 'Speichere …';
+      try {
+        await update(ref(db, 'anzeige'), {
+          aktuell: ui.aktuell.value.trim(),
+          vorbereitung: ui.vorb.value.trim(),
+          colorAktuell: ui.colorAktuell.value,
+          colorVorb: ui.colorVorb.value,
+          updatedAt: Date.now()
+        });
+        ui.saveMsg.textContent = 'Gespeichert ✔';
+      } catch (err) {
+        ui.saveMsg.textContent = 'Fehler: ' + (err?.message ?? err);
+      } finally {
+        ui.save.disabled = false;
+        setTimeout(()=> ui.saveMsg.textContent = '', 2500);
+      }
+    }
+
+    ui.save.addEventListener('click', (e) => { e.preventDefault(); speichern(); });
+    ui.aktuell.addEventListener('keydown', (e)=> e.key === 'Enter' && speichern());
+    ui.vorb.addEventListener('keydown',    (e)=> e.key === 'Enter' && speichern());
+  </script>
+</body>
+</html>
