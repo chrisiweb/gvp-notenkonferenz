@@ -1,3 +1,4 @@
+
 <!doctype html>
 <html lang="de">
 <head>
@@ -6,256 +7,139 @@
   <title>Notenkonferenz – Admin</title>
   <meta name="robots" content="noindex,nofollow" />
   <style>
-    body { font-family: system-ui, Segoe UI, Roboto, Arial, sans-serif; margin: 0; background:#0b1020; color:#eaf2ff; }
-    .seite { max-width: 980px; margin: 0 auto; padding: clamp(12px, 3vw, 32px); }
-    h1 { margin: .2em 0 .6em; }
-    form, .panel { background: #151a31; border: 1px solid #2a335f; border-radius: 14px; padding: 16px; }
-    label { display:block; margin:.6em 0 .2em; font-weight:600; }
-    input[type="text"], input[type="email"], input[type="password"] {
-      width: 100%; padding: 10px 12px; font-size: 18px; border-radius: 10px;
-      border:1px solid #394273; background:#0f1428; color:#eaf2ff;
-    }
-    input[type="color"]{ width: 54px; height: 38px; border: none; background: transparent; }
-    .reihe { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: end; }
-    .btn { margin-top: 14px; padding: 10px 14px; font-size: 16px; background:#3b82f6; color:white;
-      border:none; border-radius:10px; cursor:pointer; }
-    .btn.secondary { background:#64748b; }
-    .grid2 { display:grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    .grid3 { display:grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-    .grid4 { display:grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-    .chip { padding: 10px 12px; background:#1a2140; border:1px solid #2a335f; border-radius:10px; text-align:center; cursor:pointer; }
-    .chip:hover { background:#202951; }
-    .palette { display:flex; flex-wrap: wrap; gap:10px; margin-top:10px; }
-    .colorbtn { width: 44px; height: 34px; border-radius: 8px; border: 2px solid #2a335f; cursor: pointer; }
-    .hinweis { opacity: .75; font-size: 13px; margin-top: .4em; }
-    .topbar { display:flex; align-items:center; justify-content:space-between; margin-bottom: 14px; }
-    .fehler { color:#ffb4b4; margin-top:8px; }
-    .rowhead { display:flex; align-items:center; justify-content:space-between; margin: 8px 0; }
+    body { font-family: system-ui, Segoe UI, Roboto, Arial, sans-serif; margin:0; padding:20px; background:#0b1020; color:#eaf2ff; }
+    .box { background:#151a31; padding:20px; border-radius:12px; max-width:720px; margin:auto; }
+    textarea { width:100%; height:220px; border-radius:8px; padding:10px; background:#0f1428; color:#eaf2ff; border:1px solid #2a335f; }
+    input { width:100%; padding:10px; margin-top:10px; border-radius:8px; background:#0f1428; color:#eaf2ff; border:1px solid #2a335f; }
+    button { padding:10px 16px; margin-top:10px; border:0; border-radius:8px; cursor:pointer; font-size:16px; }
+    .btn1 { background:#3b82f6; color:white; }
+    .btn2 { background:#22c55e; color:white; margin-left:8px; }
+    .label { font-weight:600; margin-top:12px; display:block; }
+    .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+    .muted { opacity:.75; font-size:13px; }
+    .error { color:#ffb4b4; margin-top:8px; }
   </style>
 </head>
 <body>
-  <div class="seite">
-    <div class="topbar">
-      <h1>Admin – Notenkonferenz</h1>
-      <button id="abmelden" class="btn secondary" style="display:none;">Abmelden</button>
+
+<div class="box">
+  <h2>Admin – Notenkonferenz</h2>
+
+  <!-- Login -->
+  <div id="loginBox">
+    <label class="label">E‑Mail</label>
+    <input id="email" type="email" autocomplete="username" />
+
+    <label class="label">Passwort</label>
+    <input id="passwort" type="password" autocomplete="current-password" />
+
+    <div class="row">
+      <button id="loginBtn" class="btn1">Anmelden</button>
     </div>
-
-    <!-- Login-Bereich -->
-    <form id="login">
-      <label>E‑Mail</label>
-      <input id="email" type="email" required />
-      <label>Passwort</label>
-      <input id="passwort" type="password" required />
-      <button class="btn" type="submit">Anmelden</button>
-      <div id="loginFehler" class="fehler"></div>
-    </form>
-
-    <!-- Admin-Panel -->
-    <div id="panel" class="panel" style="display:none;">
-      <div class="grid2">
-        <div>
-          <label>Aktuell</label>
-          <div class="reihe">
-            <input id="aktuell" type="text" placeholder="z. B. 3A" />
-            <input id="farbeAktuell" type="color" value="#0ea5e9" title="Farbe für »Aktuell«" />
-          </div>
-        </div>
-        <div>
-          <label>In Vorbereitung</label>
-          <div class="reihe">
-            <input id="vorbereitung" type="text" placeholder="z. B. 3B" />
-            <input id="farbeVorbereitung" type="color" value="#22c55e" title="Farbe für »In Vorbereitung«" />
-          </div>
-        </div>
-      </div>
-
-      <!-- Vordefinierte Klassen -->
-      <div style="margin-top:18px;">
-        <div class="rowhead">
-          <strong>Schnellauswahl Klassen</strong>
-          <span class="hinweis">Klick = „Aktuell“, Umschalt+Klick = „In Vorbereitung“</span>
-        </div>
-        <div id="klassenGrid" class="grid4"></div>
-      </div>
-
-      <!-- Farb-Palette (optional) -->
-      <div style="margin-top:14px;">
-        <strong>Farb-Palette (optional)</strong>
-        <div class="palette" id="paletteAktuell"></div>
-        <div class="hinweis">Oben ändert die Farbe für „Aktuell“, unten für „In Vorbereitung“.</div>
-        <div class="palette" id="paletteVorbereitung" style="margin-top:8px;"></div>
-      </div>
-
-      <div style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;">
-        <button id="speichern" class="btn">Speichern & Live anzeigen</button>
-        <button id="leerenAktuell" class="btn secondary">Aktuell leeren</button>
-        <button id="leerenVorb" class="btn secondary">Vorbereitung leeren</button>
-      </div>
-
-      <div class="hinweis">Tipp: Mit <kbd>Enter</kbd> in einem Feld speichern.</div>
-      <div id="speicherStatus" class="hinweis"></div>
-    </div>
+    <div id="loginError" class="error"></div>
+    <div class="muted" style="margin-top:6px;">Domain muss in Firebase unter <i>Authentifizierung → Einstellungen → Autorisierte Domains</i> freigegeben sein (z. B. <code>chrisiweb.github.io</code>).</div>
   </div>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    import { getDatabase, ref, onValue, update } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+  <!-- Panel -->
+  <div id="panel" style="display:none;">
+    <label class="label">Liste aller Klassen (eine pro Zeile)</label>
+    <textarea id="klassenInput" placeholder="z. B.&#10;1A&#10;1B&#10;1C&#10;2A&#10;…"></textarea>
 
+    <div class="row">
+      <button id="startBtn" class="btn1" title="Erste Klasse → Aktuell, zweite → In Vorbereitung">Start</button>
+      <button id="nextBtn" class="btn2" title="Verschiebt: Vorbereitung → Aktuell; nächste aus Liste → Vorbereitung">Nächste Klasse</button>
+    </div>
+
+    <div id="info" class="muted" style="margin-top:10px;"></div>
+  </div>
+</div>
+
+<script type="module">
+  // --- Firebase Config (von dir) ---
   const firebaseConfig = {
     apiKey: "AIzaSyCuLVnVCnpc1JPO5eRsUpwOdTjacZ6cgso",
     authDomain: "gvp-notenkonferenz.firebaseapp.com",
     databaseURL: "https://gvp-notenkonferenz-default-rtdb.europe-west1.firebasedatabase.app",
     projectId: "gvp-notenkonferenz",
-    storageBucket: "gvp-notenkonferenz.firebasestorage.app",
+    storageBucket: "gvp-notenkonferenz.appspot.com", // korrigiert
     messagingSenderId: "443453428623",
     appId: "1:443453428623:web:3d3640bfe6ed2c38e871fa",
     measurementId: "G-SVZX9DEJNP"
   };
 
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import { getDatabase, ref, update } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
-    // ▼▼▼ HIER DEINE KLASSEN & FARBPALetten KONFIGURIEREN ▼▼▼
-    const KLASSEN = [
-      "1A","1B","1C","1D",
-      "2A","2B","2C","2D",
-      "3A","3B","3C","3D",
-      "4A","4B","4C","4D",
-      "5A","5B","5C","5D",
-      "6A","6B","6C","6D",
-      "7A","7B","7C","7D",
-      "8A","8B","8C","8D"
-    ];
-    const FARBEN = ["#0ea5e9","#22c55e","#eab308","#ef4444","#8b5cf6","#06b6d4","#14b8a6","#f97316","#94a3b8"];
-    // ▲▲▲ ANPASSEN NACH BEDARF ▲▲▲
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db   = getDatabase(app);
 
-    const app  = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db   = getDatabase(app);
+  const loginBox = document.getElementById("loginBox");
+  const panel    = document.getElementById("panel");
+  const info     = document.getElementById("info");
+  const loginBtn = document.getElementById("loginBtn");
 
-    const $ = s => document.querySelector(s);
-    const ui = {
-      login: $('#login'),
-      email: $('#email'),
-      passwort: $('#passwort'),
-      loginFehler: $('#loginFehler'),
-      panel: $('#panel'),
-      aktuell: $('#aktuell'),
-      vorbereitung: $('#vorbereitung'),
-      farbeAktuell: $('#farbeAktuell'),
-      farbeVorbereitung: $('#farbeVorbereitung'),
-      speichern: $('#speichern'),
-      speicherStatus: $('#speicherStatus'),
-      abmelden: $('#abmelden'),
-      klassenGrid: $('#klassenGrid'),
-      paletteAktuell: $('#paletteAktuell'),
-      paletteVorbereitung: $('#paletteVorbereitung'),
-      leerenAktuell: $('#leerenAktuell'),
-      leerenVorb: $('#leerenVorb')
-    };
+  let klassen = [];
+  let position = 0;
 
-    // Login absenden
-    ui.login.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      ui.loginFehler.textContent = '';
-      try {
-        await signInWithEmailAndPassword(auth, ui.email.value, ui.passwort.value);
-      } catch (err) {
-        ui.loginFehler.textContent = 'Login fehlgeschlagen: ' + (err?.message ?? err);
-      }
+  loginBtn.onclick = async () => {
+    const email = (document.getElementById("email").value || "").trim();
+    const pass  = (document.getElementById("passwort").value || "").trim();
+    document.getElementById("loginError").textContent = "";
+    try {
+      await signInWithEmailAndPassword(auth, email, pass);
+    } catch (err) {
+      document.getElementById("loginError").textContent = err?.message ?? String(err);
+    }
+  };
+
+  onAuthStateChanged(auth, (user) => {
+    const signedIn = !!user;
+    loginBox.style.display = signedIn ? "none" : "";
+    panel.style.display    = signedIn ? "" : "none";
+  });
+
+  // Start: setzt erste zwei Zeilen
+  document.getElementById("startBtn").onclick = () => {
+    klassen = document.getElementById("klassenInput").value
+      .split("\n")
+      .map(x => x.trim())
+      .filter(x => x.length > 0);
+
+    position = 0;
+    updateAnzeige();
+  };
+
+  // Nächste: schiebt eine weiter
+  document.getElementById("nextBtn").onclick = () => {
+    if (position < klassen.length - 1) {
+      position++;
+      updateAnzeige();
+    } else {
+      // Ende der Liste – Vorbereitung wird leer
+      position = klassen.length - 1;
+      updateAnzeige();
+    }
+  };
+
+  function updateAnzeige() {
+    const aktuell = klassen[position] || "";
+    const vorb    = klassen[position + 1] || "";
+
+    update(ref(db, "anzeige"), {
+      aktuell: aktuell,
+      vorbereitung: vorb,
+      aktualisiertAm: Date.now()
     });
 
-    // Abmelden
-    ui.abmelden.addEventListener('click', () => signOut(auth));
+    info.innerHTML = `
+      <div>Aktuell: <b>${aktuell || "—"}</b></div>
+      <div>In Vorbereitung: <b>${vorb || "—"}</b></div>
+      <div>Position: ${Math.min(position + 1, klassen.length)} / ${klassen.length}</div>
+    `;
+  }
+</script>
 
-    // UI Zustände je nach Auth
-    onAuthStateChanged(auth, (user) => {
-      const angemeldet = !!user;
-      ui.login.style.display   = angemeldet ? 'none' : '';
-      ui.panel.style.display   = angemeldet ? '' : 'none';
-      ui.abmelden.style.display= angemeldet ? '' : 'none';
-      ui.speicherStatus.textContent = '';
-
-      if (angemeldet) {
-        // Bestehende Werte laden & live spiegeln
-        onValue(ref(db, 'anzeige'), (snap) => {
-          const v = snap.val() || {};
-          if (document.activeElement !== ui.aktuell)       ui.aktuell.value       = v.aktuell || '';
-          if (document.activeElement !== ui.vorbereitung)  ui.vorbereitung.value  = v.vorbereitung || '';
-          if (!document.activeElement || document.activeElement.type !== 'color') {
-            ui.farbeAktuell.value       = v.farbeAktuell || '#0ea5e9';
-            ui.farbeVorbereitung.value  = v.farbeVorbereitung || '#22c55e';
-          }
-        });
-      }
-    });
-
-    // Klassen-Buttons rendern
-    function renderKlassen() {
-      ui.klassenGrid.innerHTML = '';
-      KLASSEN.forEach(name => {
-        const b = document.createElement('button');
-        b.type = 'button';
-        b.className = 'chip';
-        b.textContent = name;
-        b.title = 'Klick: Aktuell setzen • Umschalt+Klick: In Vorbereitung setzen';
-        b.addEventListener('click', (e) => {
-          if (e.shiftKey) {
-            ui.vorbereitung.value = name;
-          } else {
-            ui.aktuell.value = name;
-          }
-          speichern(); // sofort live
-        });
-        ui.klassenGrid.appendChild(b);
-      });
-    }
-
-    // Farbpaletten rendern
-    function renderPaletten() {
-      ui.paletteAktuell.innerHTML = '';
-      ui.paletteVorbereitung.innerHTML = '';
-      FARBEN.forEach(hex => {
-        const ca = document.createElement('button');
-        ca.type = 'button'; ca.className = 'colorbtn'; ca.style.background = hex; ca.title = `Aktuell: ${hex}`;
-        ca.addEventListener('click', () => { ui.farbeAktuell.value = hex; speichern(); });
-        ui.paletteAktuell.appendChild(ca);
-
-        const cv = document.createElement('button');
-        cv.type = 'button'; cv.className = 'colorbtn'; cv.style.background = hex; cv.title = `Vorbereitung: ${hex}`;
-        cv.addEventListener('click', () => { ui.farbeVorbereitung.value = hex; speichern(); });
-        ui.paletteVorbereitung.appendChild(cv);
-      });
-    }
-
-    async function speichern() {
-      ui.speichern.disabled = true;
-      ui.speicherStatus.textContent = 'Speichere …';
-      try {
-        await update(ref(db, 'anzeige'), {
-          aktuell: ui.aktuell.value.trim(),
-          vorbereitung: ui.vorbereitung.value.trim(),
-          farbeAktuell: ui.farbeAktuell.value,
-          farbeVorbereitung: ui.farbeVorbereitung.value,
-          aktualisiertAm: Date.now()
-        });
-        ui.speicherStatus.textContent = 'Gespeichert ✔';
-      } catch (err) {
-        ui.speicherStatus.textContent = 'Fehler: ' + (err?.message ?? err);
-      } finally {
-        ui.speichern.disabled = false;
-        setTimeout(()=> ui.speicherStatus.textContent = '', 2000);
-      }
-    }
-
-    ui.speichern.addEventListener('click', (e) => { e.preventDefault(); speichern(); });
-    ui.aktuell.addEventListener('keydown',      (e)=> e.key === 'Enter' && speichern());
-    ui.vorbereitung.addEventListener('keydown', (e)=> e.key === 'Enter' && speichern());
-    ui.leerenAktuell.addEventListener('click', (e)=> { e.preventDefault(); ui.aktuell.value=''; speichern(); });
-    ui.leerenVorb.addEventListener('click',    (e)=> { e.preventDefault(); ui.vorbereitung.value=''; speichern(); });
-
-    renderKlassen();
-    renderPaletten();
-  </script>
 </body>
 </html>
-``
