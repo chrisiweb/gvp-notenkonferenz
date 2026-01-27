@@ -149,8 +149,9 @@
     <!-- Aktionen oben -->
     <div class="row-space" style="margin-top:12px;">
       <div class="row-left">
-        <button id="editBtn" class="btn-ghost" title="Klassenliste bearbeiten und speichern">Klassenliste bearbeiten</button>
-        <span id="saveHint" class="saving" aria-live="polite"></span>
+        <button id="startNextBtn" class="btn-primary big-button" title="Startet mit den ersten zwei Klassen; danach »Nächste Klasse«">
+        Konferenz starten
+      </button>
       </div>
       <div class="muted">Klicke auf eine Klasse, um direkt zu dieser Klasse zu wechseln.</div>
     </div>
@@ -161,9 +162,8 @@
     <!-- Buttons: links Start/Nächste, rechts Zurück + Neustart -->
     <div class="row-space">
       <div class="row-left">
-        <button id="startNextBtn" class="btn-primary big-button" title="Startet mit den ersten zwei Klassen; danach »Nächste Klasse«">
-        Konferenz starten
-      </button>
+        <button id="editBtn" class="btn-ghost" title="Klassenliste bearbeiten und speichern">Klassenliste bearbeiten</button>
+        <span id="saveHint" class="saving" aria-live="polite"></span>
       </div>
       <div class="row-left">
         <button id="prevBtn" class="btn-red" title="Geht einen Schritt zurück (In Vorbereitung → Aktuell; vorige Klasse → in Vorbereitung)">Eine Klasse zurückspringen</button>
@@ -572,6 +572,7 @@ window.addEventListener("keydown", (e) => {
 
 </body>
 </html>
+
 
 
 
