@@ -77,11 +77,15 @@
     <!-- Buttons: links Start/Nächste, rechts Zurück -->
     <div class="row-space">
       <div class="row-left">
-        <button id="startNextBtn" class="btn-primary" title="Startet mit den ersten zwei Klassen; danach »Nächste Klasse«">Start</button>
+        <button id="startNextBtn" class="btn-primary">Start</button>
         <span id="saveHint" class="saving" aria-live="polite"></span>
       </div>
-      <button id="prevBtn" class="btn-red" title="Geht einen Schritt zurück (Vorbereitung → Aktuell; davorige Klasse → Vorbereitung)">Zurück</button>
-    </div>
+    
+      <div class="row-left">
+        <button id="prevBtn" class="btn-red">Zurück</button>
+        <button id="resetBtn" class="btn-red" style="background:#b91c1c;">Neustart</button>
+       </div>
+
 
     <div id="info" class="muted" style="margin-top:10px;"></div>
   </div>
@@ -262,3 +266,4 @@
 
 </body>
 </html>
+
