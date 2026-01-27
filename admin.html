@@ -150,11 +150,11 @@
     <!-- Buttons: links Start/Nächste, rechts Zurück + Neustart -->
     <div class="row-space">
       <div class="row-left">
-        <button id="startNextBtn" class="btn-primary" title="Startet mit den ersten zwei Klassen; danach »Nächste Klasse«">Start</button>
+        <button id="startNextBtn" class="btn-primary" title="Startet mit den ersten zwei Klassen; danach »Nächste Klasse«">Konferenz starten</button>
       </div>
       <div class="row-left">
-        <button id="prevBtn" class="btn-red" title="Geht einen Schritt zurück (Vorbereitung → Aktuell; davorige Klasse → Vorbereitung)">Zurück</button>
-        <button id="resetBtn" class="btn-red" style="background:#b91c1c;">Neustart</button>
+        <button id="prevBtn" class="btn-red" title="Geht einen Schritt zurück (In Vorbereitung → Aktuell; vorige Klasse → in Vorbereitung)">Eine Klasse zurück</button>
+        <button id="resetBtn" class="btn-red" style="background:#b91c1c;">Reset</button>
       </div>
     </div>
 
@@ -343,7 +343,7 @@
       div.appendChild(label);
       div.appendChild(pill);
 
-      // Klick → Bestätigung → direkt zu dieser Klasse springen
+      // Klicke auf eine Klasse, um direkt zu dieser Klasse zu wechseln.
       div.onclick = async () => {
         // bereits aktiv -> nichts tun
         if (i === pos) return;
@@ -521,3 +521,4 @@
 
 </body>
 </html>
+
