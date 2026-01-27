@@ -248,35 +248,37 @@
     }
   };
 
+
   onAuthStateChanged(auth, async (user) => {
     const signedIn = !!user;
     loginBox.style.display = signedIn ? "none" : "";
     panel.style.display    = signedIn ? "" : "none";
     if (!signedIn) return;
   
-    // --- Automatischer Reset beim Neuladen der Seite ---
+    // --- Automatischer Reset beim Neuladen ---
     initialized = false;
     pos = 0;
+  
     await speichereSteuerung();
+  
+    const now = Date.now();
     await update(ref(db, "anzeige"), {
       aktuell: "",
       vorbereitung: "",
-      aktualisiertAm: Date.now(),
-      updatedAt: Date.now(),
+      aktualisiertAm: now,
+      updatedAt: now
     });
   
-    // Zustand neu laden (Liste bleibt erhalten)
+    // Danach wie zuvor
     await ladeSteuerung();
-  
-    // UI aktualisieren
     editorTextarea.value = klassen.join("\n");
     aktualisiereKarten();
     aktualisiereStartNextLabel();
     zeigeInfo();
     aktualisiereKlassenListe();
-  
     requestAnimationFrame(keepActiveAndNextInView);
   });
+
 
   // --- Persistenz: steuerung { liste, pos, initialized } ---
   async function ladeSteuerung() {
@@ -557,6 +559,7 @@ window.addEventListener("keydown", (e) => {
 
 </body>
 </html>
+
 
 
 
