@@ -18,15 +18,15 @@
     .box { background: var(--card-bg); padding:20px; border-radius:12px; max-width:900px; margin:auto; border:1px solid var(--card-bd); }
     input { width:100%; padding:10px; border-radius:8px; background:#0f1428; color:#eaf2ff; border:1px solid var(--card-bd); }
     button { padding:10px 16px; border:0; border-radius:8px; cursor:pointer; font-size:16px; }
-    .big-button {
-      padding: 20px 32px !important;
-      font-size: 24px !important;
-      min-width: 140px;
-      min-height: 110px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
+  .big-button {
+    padding: 20px 32px !important;  /* mehr Innenabstand */
+    font-size: 24px !important;     /* größere Schrift */
+    min-width: 140px;               /* ca. 2 cm */
+    min-height: 110px;              /* ca. 2 cm */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
     .btn-primary { background:#3b82f6; color:white; }
     .btn-red     { background:#ef4444; color:white; }
     .row-space { display:flex; gap:8px; align-items:center; justify-content:space-between; margin-top:10px; }
@@ -45,7 +45,7 @@
     .card .value { margin-top:.25em; font-weight:800; line-height:1.1; font-size: clamp(28px, 5vw, 64px); word-wrap:break-word; }
     @media (max-width: 740px) { .cards { grid-template-columns: 1fr; } }
 
-    /* Interaktive Liste */
+    /* --- Interaktive klickbare Klassenliste --- */
     .listView {
       margin-top: 10px;
       border: 1px solid var(--card-bd);
@@ -61,16 +61,18 @@
       cursor: pointer;
       border-bottom: 1px solid rgba(255,255,255,0.05);
       display:flex; gap:8px; align-items:center;
-      scroll-margin: 10px;
+      scroll-margin: 10px; /* zusätzlicher Rand beim Scrollen zu Elementen */
     }
-    .listItem:hover { background: rgba(255,255,255,0.05); }
+    .listItem:hover {
+      background: rgba(255,255,255,0.05);
+    }
     .listItem.active {
-      background: rgba(14,165,233,0.20);
+      background: rgba(14,165,233,0.20);          /* hellblau transparent */
       border-left: 4px solid var(--c-aktuell);
       padding-left: 8px;
     }
     .listItem.next {
-      background: rgba(34,197,94,0.16);
+      background: rgba(34,197,94,0.16);           /* etwas kräftigeres Grün */
       border-left: 4px solid var(--c-vorb);
       padding-left: 8px;
     }
@@ -82,7 +84,7 @@
     .pill.vorb { background: rgba(34,197,94,0.22); }
     .listEmpty { padding:8px 12px; opacity:.7; font-style:italic; }
 
-    /* Modal */
+    /* --- Modal für „Klassenliste bearbeiten“ --- */
     .modal { position: fixed; inset: 0; background: rgba(0,0,0,.5); display:none; align-items:center; justify-content:center; padding:20px; z-index:1000; }
     .modal.open { display:flex; }
     .modal-content {
@@ -112,6 +114,7 @@
 <div class="box">
   <h2>Admin – Notenkonferenz Liveticker</h2>
 
+
   <!-- Login -->
   <div id="loginBox">
     <label class="label">E‑Mail</label>
@@ -127,6 +130,7 @@
       <i>Authentifizierung → Einstellungen → Autorisierte Domains</i> freigegeben sein.
     </div>
   </div>
+
 
   <!-- Panel -->
   <div id="panel" style="display:none;">
@@ -151,15 +155,15 @@
       <div class="muted">Klicke auf eine Klasse, um direkt zu dieser Klasse zu wechseln.</div>
     </div>
 
-    <!-- Interaktive Liste -->
+    <!-- Interaktive, klickbare Liste mit Markierung -->
     <div id="klassenList" class="listView"></div>
 
-    <!-- Buttons -->
+    <!-- Buttons: links Start/Nächste, rechts Zurück + Neustart -->
     <div class="row-space">
       <div class="row-left">
         <button id="startNextBtn" class="btn-primary big-button" title="Startet mit den ersten zwei Klassen; danach »Nächste Klasse«">
-          Konferenz starten
-        </button>
+        Konferenz starten
+      </button>
       </div>
       <div class="row-left">
         <button id="prevBtn" class="btn-red" title="Geht einen Schritt zurück (In Vorbereitung → Aktuell; vorige Klasse → in Vorbereitung)">Eine Klasse zurückspringen</button>
@@ -249,34 +253,21 @@
     loginBox.style.display = signedIn ? "none" : "";
     panel.style.display    = signedIn ? "" : "none";
     if (!signedIn) return;
-
-    // 1) Zustand laden (holt die bestehende Klassenliste sicher aus DB)
+    
+    // Zustand laden
     await ladeSteuerung();
-
-    // 2) IMMER am Anfang starten (Liste bleibt unberührt)
-    pos = 0;
-    initialized = false;
-    await speichereNurPosUndInit();
-
-    // 3) Öffentliche Anzeige leeren, bis "Konferenz starten" gedrückt wird
-    const now = Date.now();
-    await update(ref(db, "anzeige"), {
-      aktuell: "",
-      vorbereitung: "",
-      aktualisiertAm: now,
-      updatedAt: now
-    });
-
-    // 4) UI initial
+    
+    // UI initial
     editorTextarea.value = klassen.join("\n");
     aktualisiereKarten();
     aktualisiereStartNextLabel();
     zeigeInfo();
     aktualisiereKlassenListe();
+    // nach Render ein zweites Mal, falls Layout erst dann final ist
     requestAnimationFrame(keepActiveAndNextInView);
 
-    // 5) KEINE Anzeige-Synchronisation, solange nicht gestartet
-    // if (initialized) await schreibeAnzeige(); // bleibt aus, weil initialized=false
+    // bereits laufend → Anzeige synchronisieren
+    if (initialized) await schreibeAnzeige();
   });
 
   // --- Persistenz: steuerung { liste, pos, initialized } ---
@@ -292,14 +283,8 @@
     if (pos >= Math.max(klassen.length, 1)) pos = Math.max(klassen.length - 1, 0);
   }
 
-  // Schreibt komplette Struktur (nur verwenden, wenn die LISTE geändert wurde!)
   async function speichereSteuerung() {
     await set(ref(db, "steuerung"), { liste: klassen, pos, initialized });
-  }
-
-  // Nur pos & initialized aktualisieren (Liste bleibt unberührt)
-  async function speichereNurPosUndInit() {
-    await update(ref(db, "steuerung"), { pos, initialized });
   }
 
   async function schreibeAnzeige() {
@@ -309,8 +294,8 @@
     await update(ref(db, "anzeige"), {
       aktuell,
       vorbereitung: vorb,
-      aktualisiertAm: now,
-      updatedAt: now
+      aktualisiertAm: now,   // deutsch
+      updatedAt: now         // englisch – kompatibel zum index.html
     });
   }
 
@@ -330,9 +315,9 @@
     cardVorb.textContent    = initialized ? (klassen[pos + 1] || "—") : "—";
   }
 
-  function aktualisiereStartNextLabel() {
+function aktualisiereStartNextLabel() {
     startNextBtn.textContent = initialized ? "Nächste Klasse" : "Konferenz starten";
-  }
+}
 
   // --- Klickbare Liste rendern ---
   function aktualisiereKlassenListe() {
@@ -373,13 +358,15 @@
 
       // Klicke auf eine Klasse, um direkt zu dieser Klasse zu wechseln.
       div.onclick = async () => {
+        // bereits aktiv -> nichts tun
         if (i === pos) return;
+
         const ok = confirm("Möchtest du die aktuelle Klasse wirklich ändern?");
         if (!ok) return;
 
         pos = i;
         initialized = true;
-        await speichereNurPosUndInit();
+        await speichereSteuerung();
         await schreibeAnzeige();
         aktualisiereKarten();
         aktualisiereStartNextLabel();
@@ -405,6 +392,7 @@
     const crect = cont.getBoundingClientRect();
     let top = Infinity, bottom = -Infinity;
 
+    // Positionen relativ zum Container + scrollTop ermitteln
     [active, next].forEach(el => {
       if (!el) return;
       const r = el.getBoundingClientRect();
@@ -416,13 +404,15 @@
 
     if (top === Infinity || bottom === -Infinity) return;
 
-    const padding = 12;
+    const padding = 12; // zusätzlicher Rand oben und unten
     const viewTop = cont.scrollTop;
     const viewBottom = viewTop + cont.clientHeight;
 
+    // Falls der obere Rand (mit Puffer) außerhalb ist → nach oben scrollen
     if (top - padding < viewTop) {
       cont.scrollTo({ top: Math.max(top - padding, 0), behavior: "smooth" });
     }
+    // Falls der untere Rand (mit Puffer) außerhalb ist → nach unten scrollen
     else if (bottom + padding > viewBottom) {
       cont.scrollTo({ top: bottom + padding - cont.clientHeight, behavior: "smooth" });
     }
@@ -439,19 +429,20 @@
     } else {
       if (pos < klassen.length - 1) pos++;
     }
-    await speichereNurPosUndInit(); // nur pos/init speichern
-    await schreibeAnzeige();        // Anzeige sofort aktualisieren
+    await speichereSteuerung();
+    await schreibeAnzeige();
     aktualisiereKarten();
     aktualisiereStartNextLabel();
     zeigeInfo();
     aktualisiereKlassenListe();
+    // nach DOM-Update Scroll anpassen
     requestAnimationFrame(keepActiveAndNextInView);
   };
 
   prevBtn.onclick = async () => {
     if (!initialized || klassen.length === 0) return;
     if (pos > 0) pos--;
-    await speichereNurPosUndInit(); // nur pos/init speichern
+    await speichereSteuerung();
     await schreibeAnzeige();
     aktualisiereKarten();
     aktualisiereStartNextLabel();
@@ -460,7 +451,7 @@
     requestAnimationFrame(keepActiveAndNextInView);
   };
 
-  // Neustart (Liste bleibt unberührt)
+  // Neustart
   resetBtn.onclick = async () => {
     if (!confirm("Soll die Notenkonferenz wirklich neu gestartet werden?")) {
       return;
@@ -468,7 +459,7 @@
     initialized = false;
     pos = 0;
 
-    await speichereNurPosUndInit(); // nur pos/init
+    await speichereSteuerung();
 
     const now = Date.now();
     await update(ref(db, "anzeige"), {
@@ -482,6 +473,7 @@
     aktualisiereStartNextLabel();
     zeigeInfo();
     aktualisiereKlassenListe();
+    // keine aktive Markierung → kein Scroll nötig
   };
 
   // --- Modal öffnen/schließen ---
@@ -505,7 +497,7 @@
     if (e.key === "Escape" && listModal.classList.contains("open")) closeListEditor();
   });
 
-  // Speichern aus dem Modal (HIER wird die Liste geschrieben)
+  // Speichern aus dem Modal
   saveEditBtn.onclick = async () => {
     const lines = editorTextarea.value
       .split("\n")
@@ -523,7 +515,7 @@
       pos = klassen.length - 1;
     }
 
-    await speichereSteuerung(); // schreibt liste + pos + initialized
+    await speichereSteuerung();
     if (initialized) await schreibeAnzeige();
 
     // UI aktualisieren
@@ -539,13 +531,27 @@
     closeListEditor();
   };
 
-  // ENTER-Taste löst "Konferenz starten / Nächste Klasse" aus
-  window.addEventListener("keydown", (e) => {
-    if (e.key !== "Enter" || e.shiftKey || e.ctrlKey || e.altKey) return;
-    if (getComputedStyle(loginBox).display !== "none") return;
-    startNextBtn.click();
-  });
+
+// --- ENTER-Taste löst den "Nächste Klasse" / "Konferenz starten" Button aus ---
+window.addEventListener("keydown", (e) => {
+  // Nur ENTER ohne Modifikatoren
+  if (e.key !== "Enter" || e.shiftKey || e.ctrlKey || e.altKey) return;
+
+  // Login ist sichtbar? Dann NICHT auslösen
+  if (getComputedStyle(loginBox).display !== "none") return;
+
+  // Button auslösen
+  startNextBtn.click();
+});
+
+
 </script>
 
 </body>
 </html>
+
+
+
+
+
+
