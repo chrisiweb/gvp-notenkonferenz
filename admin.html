@@ -36,6 +36,39 @@
     .card .title { opacity:.9; font-weight:700; letter-spacing:.06em; text-transform: uppercase; font-size:14px; }
     .card .value { margin-top:.25em; font-weight:800; line-height:1.1; font-size: clamp(28px, 5vw, 64px); word-wrap:break-word; }
     @media (max-width: 740px) { .cards { grid-template-columns: 1fr; } }
+
+    /* --- Interaktive Klassenliste --- */
+    .listView {
+      margin-top: 10px;
+      border: 1px solid var(--card-bd);
+      border-radius: 8px;
+      background: #0f1428;
+      max-height: 300px;
+      overflow-y: auto;
+      padding: 4px 0;
+      font-size: 15px;
+    }
+    .listItem {
+      padding: 6px 12px;
+      cursor: pointer;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      display:flex; gap:8px; align-items:center;
+    }
+    .listItem:hover {
+      background: rgba(255,255,255,0.05);
+    }
+    .listItem.active {
+      background: rgba(14,165,233,0.20);          /* hellblau transparent */
+      border-left: 4px solid var(--c-aktuell);
+      padding-left: 8px;
+    }
+    .pill {
+      display:inline-block; font-size:11px; padding:2px 6px; border-radius:999px;
+      background: rgba(255,255,255,0.1);
+      opacity:.9;
+    }
+    .pill.vorb { background: rgba(34,197,94,0.18); }    /* grünlicher Ton */
+    .listEmpty { padding:8px 12px; opacity:.7; font-style:italic; }
   </style>
 </head>
 <body>
@@ -53,7 +86,10 @@
       <button id="loginBtn" class="btn-primary">Anmelden</button>
     </div>
     <div id="loginError" class="error"></div>
-    <div class="muted" style="margin-top:6px;">Für GitHub Pages muss die Domain <code>chrisiweb.github.io</code> in Firebase unter <i>Authentifizierung → Einstellungen → Autorisierte Domains</i> freigegeben sein.</div>
+    <div class="muted" style="margin-top:6px;">
+      Für GitHub Pages muss die Domain <code>chrisiweb.github.io</code> in Firebase unter
+      <i>Authentifizierung → Einstellungen → Autorisierte Domains</i> freigegeben sein.
+    </div>
   </div>
 
   <!-- Panel -->
@@ -73,15 +109,18 @@
     <label class="label">Liste aller Klassen (eine pro Zeile)</label>
     <textarea id="klassenInput" placeholder="z. B.&#10;1A&#10;1B&#10;1C&#10;2A&#10;…"></textarea>
 
-    <!-- Buttons: links Start/Nächste, rechts Zurück -->
+    <!-- Interaktive, klickbare Liste mit Markierung -->
+    <div id="klassenList" class="listView"></div>
+
+    <!-- Buttons: links Start/Nächste, rechts Zurück + Reset -->
     <div class="row-space">
       <div class="row-left">
         <button id="startNextBtn" class="btn-primary" title="Startet mit den ersten zwei Klassen; danach »Nächste Klasse«">Start</button>
         <span id="saveHint" class="saving" aria-live="polite"></span>
       </div>
       <div class="row-left">
-      <button id="prevBtn" class="btn-red" title="Geht einen Schritt zurück (Vorbereitung → Aktuell; davorige Klasse → Vorbereitung)">Zurück</button>
-      <button id="resetBtn" class="btn-red" style="background:#b91c1c;">Reset</button>
+        <button id="prevBtn" class="btn-red" title="Geht einen Schritt zurück (Vorbereitung → Aktuell; davorige Klasse → Vorbereitung)">Zurück</button>
+        <button id="resetBtn" class="btn-red" style="background:#b91c1c;">Reset</button>
       </div>
     </div>
 
@@ -115,10 +154,13 @@
   const info     = document.getElementById("info");
   const startNextBtn = document.getElementById("startNextBtn");
   const prevBtn      = document.getElementById("prevBtn");
+  const resetBtn     = document.getElementById("resetBtn");
   const klassenInput = document.getElementById("klassenInput");
   const saveHint     = document.getElementById("saveHint");
   const cardAktuell  = document.getElementById("cardAktuell");
   const cardVorb     = document.getElementById("cardVorb");
+  const klassenList  = document.getElementById("klassenList");
+  const loginError   = document.getElementById("loginError");
 
   // Zustand
   let klassen = [];     // Array der Klassen
@@ -130,11 +172,11 @@
   document.getElementById("loginBtn").onclick = async () => {
     const email = (document.getElementById("email").value || "").trim();
     const pass  = (document.getElementById("passwort").value || "").trim();
-    document.getElementById("loginError").textContent = "";
+    loginError.textContent = "";
     try {
       await signInWithEmailAndPassword(auth, email, pass);
     } catch (err) {
-      document.getElementById("loginError").textContent = err?.message ?? String(err);
+      loginError.textContent = err?.message ?? String(err);
     }
   };
 
@@ -151,6 +193,7 @@
     aktualisiereKarten();     // zeigt –/– solange initialized=false
     aktualisiereStartNextLabel();
     zeigeInfo();
+    aktualisiereKlassenListe();
 
     // WICHTIG: KEIN automatisches Schreiben in 'anzeige', solange nicht initialized
     if (initialized) {
@@ -178,10 +221,12 @@
   async function schreibeAnzeige() {
     const aktuell = klassen[pos] || "";
     const vorb    = klassen[pos + 1] || "";
+    const now = Date.now();
     await update(ref(db, "anzeige"), {
       aktuell,
       vorbereitung: vorb,
-      aktualisiertAm: Date.now()
+      aktualisiertAm: now,   // deutscher Key
+      updatedAt: now         // englischer Key – kompatibel zum index.html
     });
   }
 
@@ -204,6 +249,59 @@
     startNextBtn.textContent = initialized ? "Nächste Klasse" : "Start";
   }
 
+  // --- Interaktive, klickbare Liste rendern ---
+  function aktualisiereKlassenListe() {
+    klassenList.innerHTML = "";
+    if (!klassen.length) {
+      const empty = document.createElement("div");
+      empty.className = "listEmpty";
+      empty.textContent = "Noch keine Klassen eingetragen.";
+      klassenList.appendChild(empty);
+      return;
+    }
+
+    klassen.forEach((k, i) => {
+      const div = document.createElement("div");
+      div.className = "listItem" + ((initialized && i === pos) ? " active" : "");
+      // kleines Label für "nächste" Klasse
+      const label = document.createElement("div");
+      label.textContent = k;
+      label.style.flex = "1 1 auto";
+
+      const pill = document.createElement("span");
+      pill.className = "pill";
+      if (initialized && i === pos + 1) {
+        pill.textContent = "Vorbereitung";
+        pill.classList.add("vorb");
+      } else if (initialized && i === pos) {
+        pill.textContent = "Aktuell";
+      } else {
+        pill.textContent = "";
+        pill.style.opacity = "0";
+      }
+
+      div.appendChild(label);
+      div.appendChild(pill);
+
+      // Klick → direkt zu dieser Klasse springen
+      div.onclick = async () => {
+        if (!klassen.length) return;
+        pos = i;
+        initialized = true;
+        await speichereSteuerung();
+        await schreibeAnzeige();
+        aktualisiereKarten();
+        aktualisiereStartNextLabel();
+        zeigeInfo();
+        aktualisiereKlassenListe();
+        // Aktive Zeile sichtbar halten
+        div.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      };
+
+      klassenList.appendChild(div);
+    });
+  }
+
   // --- Auto-Save der Liste (debounced) ---
   function scheduleAutoSave() {
     saveHint.textContent = "Speichern …";
@@ -219,9 +317,12 @@
       await speichereSteuerung();
       // NICHT automatisch in 'anzeige' schreiben, wenn noch nicht gestartet
       if (initialized) await schreibeAnzeige();
+
       aktualisiereKarten();
       aktualisiereStartNextLabel();
       zeigeInfo();
+      aktualisiereKlassenListe();
+
       saveHint.textContent = "Gespeichert ✔";
       setTimeout(() => saveHint.textContent = "", 1500);
     }, 500);
@@ -249,48 +350,50 @@
     aktualisiereKarten();
     aktualisiereStartNextLabel();
     zeigeInfo();
+    aktualisiereKlassenListe();
   };
 
   prevBtn.onclick = async () => {
     if (!initialized || klassen.length === 0) return;
     if (pos > 0) pos--;
-
-
     await speichereSteuerung();
     await schreibeAnzeige();
     aktualisiereKarten();
     aktualisiereStartNextLabel();
     zeigeInfo();
+    aktualisiereKlassenListe();
   };
 
-
-document.getElementById("resetBtn").onclick = async () => {
-  if (!confirm("Soll die Notenkonferenz wirklich neu gestartet werden?")) {
-    return;
-  }
+  // Reset / Neustart
+  document.getElementById("resetBtn").onclick = async () => {
+    if (!confirm("Soll die Notenkonferenz wirklich neu gestartet werden?")) {
+      return;
+    }
 
     // zurücksetzen
     initialized = false;
     pos = 0;
-  
+
     // speichern
     await speichereSteuerung();
-  
+
     // Anzeige komplett zurücksetzen
+    const now = Date.now();
     await update(ref(db, "anzeige"), {
       aktuell: "",
       vorbereitung: "",
-      aktualisiertAm: Date.now()
+      aktualisiertAm: now,
+      updatedAt: now
     });
-  
+
     // UI aktualisieren
     aktualisiereKarten();
     aktualisiereStartNextLabel();
     zeigeInfo();
+    aktualisiereKlassenListe();
   };
 </script>
 
 </body>
 </html>
-
-
+``
