@@ -253,21 +253,29 @@
     loginBox.style.display = signedIn ? "none" : "";
     panel.style.display    = signedIn ? "" : "none";
     if (!signedIn) return;
-
-    // Zustand laden
+  
+    // --- Automatischer Reset beim Neuladen der Seite ---
+    initialized = false;
+    pos = 0;
+    await speichereSteuerung();
+    await update(ref(db, "anzeige"), {
+      aktuell: "",
+      vorbereitung: "",
+      aktualisiertAm: Date.now(),
+      updatedAt: Date.now(),
+    });
+  
+    // Zustand neu laden (Liste bleibt erhalten)
     await ladeSteuerung();
-
-    // UI initial
+  
+    // UI aktualisieren
     editorTextarea.value = klassen.join("\n");
     aktualisiereKarten();
     aktualisiereStartNextLabel();
     zeigeInfo();
     aktualisiereKlassenListe();
-    // nach Render ein zweites Mal, falls Layout erst dann final ist
+  
     requestAnimationFrame(keepActiveAndNextInView);
-
-    // bereits laufend → Anzeige synchronisieren
-    if (initialized) await schreibeAnzeige();
   });
 
   // --- Persistenz: steuerung { liste, pos, initialized } ---
@@ -549,6 +557,7 @@ window.addEventListener("keydown", (e) => {
 
 </body>
 </html>
+
 
 
 
