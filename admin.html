@@ -105,21 +105,20 @@
 <div class="box">
   <h2>Admin – Notenkonferenz</h2>
 
-  <!-- Login -->
-  <div id="loginBox">
-    <label class="label">E‑Mail</label>
-    <input id="email" type="email" autocomplete="username" />
-    <label class="label">Passwort</label>
-    <input id="passwort" type="password" autocomplete="current-password" />
-    <div class="row-left">
-      <button id="loginBtn" class="btn-primary">Anmelden</button>
-    </div>
-    <div id="loginError" class="error"></div>
-    <div class="muted" style="margin-top:6px;">
-      Für GitHub Pages muss die Domain <code>chrisiweb.github.io</code> in Firebase unter
-      <i>Authentifizierung → Einstellungen → Autorisierte Domains</i> freigegeben sein.
-    </div>
+
+<!-- Login -->
+<div id="loginBox">
+  <label class="label">Passwort</label>
+  <input id="passwort" type="password" autocomplete="current-password" />
+  <div class="row-left">
+    <button id="loginBtn" class="btn-primary">Anmelden</button>
   </div>
+  <div id="loginError" class="error"></div>
+  <div class="muted" style="margin-top:6px;">
+    Hinweis: Zugang für autorisierte Personen.
+  </div>
+</div>
+
 
   <!-- Panel -->
   <div id="panel" style="display:none;">
@@ -178,6 +177,7 @@
 </div>
 
 <script type="module">
+  const ADMIN_EMAIL = "admin@gvp-notenkonferenz.at"; //
   // --- Firebase Config ---
   const firebaseConfig = {
     apiKey: "AIzaSyCuLVnVCnpc1JPO5eRsUpwOdTjacZ6cgso",
@@ -224,16 +224,24 @@
   let initialized = false; // erst nach „Konferenz starten“ true
 
   // --- Login ---
-  document.getElementById("loginBtn").onclick = async () => {
-    const email = (document.getElementById("email").value || "").trim();
-    const pass  = (document.getElementById("passwort").value || "").trim();
-    loginError.textContent = "";
-    try {
-      await signInWithEmailAndPassword(auth, email, pass);
-    } catch (err) {
-      loginError.textContent = err?.message ?? String(err);
-    }
-  };
+document.getElementById("loginBtn").onclick = async () => {
+  const pass  = (document.getElementById("passwort").value || "").trim();
+  const loginError = document.getElementById("loginError");
+  loginError.textContent = "";
+
+  if (!pass) {
+    loginError.textContent = "Bitte Passwort eingeben.";
+    return;
+  }
+  try {
+    // Melde dich intern mit der fest hinterlegten Admin-Adresse an.
+    await signInWithEmailAndPassword(auth, ADMIN_EMAIL, pass);
+  } catch (err) {
+    // Einheitliche Meldung, kein Leaken, ob E-Mail existiert etc.
+    loginError.textContent = "Anmeldung fehlgeschlagen. Bitte Passwort prüfen.";
+    console.error(err);
+  }
+};
 
   onAuthStateChanged(auth, async (user) => {
     const signedIn = !!user;
@@ -521,6 +529,7 @@ function aktualisiereStartNextLabel() {
 
 </body>
 </html>
+
 
 
 
