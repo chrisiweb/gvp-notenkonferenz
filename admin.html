@@ -182,7 +182,11 @@
     <textarea id="editorTextarea" placeholder="z. B.&#10;1A&#10;1B&#10;1C&#10;2A&#10;…"></textarea>
     <div class="modal-actions">
       <div class="muted">Tipp: Eine Klasse pro Zeile. Leere Zeilen werden ignoriert.</div>
+      
       <div class="row-left">
+        <button id="reverseBtn" class="btn-ghost" style="border-color:#3b82f6;color:#3b82f6;">
+          Klassenreihenfolge umdrehen
+        </button>
         <button id="cancelEditBtn" class="btn-ghost">Abbrechen</button>
         <button id="saveEditBtn" class="btn-primary">Speichern</button>
       </div>
@@ -497,6 +501,25 @@ function aktualisiereStartNextLabel() {
     if (e.key === "Escape" && listModal.classList.contains("open")) closeListEditor();
   });
 
+  // --- Klassenreihenfolge umdrehen ---
+  document.getElementById("reverseBtn").onclick = () => {
+    const lines = editorTextarea.value
+      .split("\n")
+      .map(s => s.trim())
+      .filter(Boolean);
+  
+    if (lines.length === 0) {
+      alert("Keine Klassen vorhanden.");
+      return;
+    }
+  
+    const ok = confirm("Soll die Reihenfolge der Klassen wirklich umgedreht werden?");
+    if (!ok) return;
+  
+    const reversed = lines.reverse();
+    editorTextarea.value = reversed.join("\n");
+  };
+  
   // Speichern aus dem Modal
   saveEditBtn.onclick = async () => {
     const lines = editorTextarea.value
@@ -549,6 +572,7 @@ window.addEventListener("keydown", (e) => {
 
 </body>
 </html>
+
 
 
 
