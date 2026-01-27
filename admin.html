@@ -117,8 +117,8 @@
 
   <!-- Login -->
   <div id="loginBox">
-    <label class="label">E‑Mail</label>
-    <input id="email" type="email" autocomplete="username" />
+    <label class="label">Benutzername oder E‑Mail</label>
+    <input id="email" type="text" autocomplete="username" placeholder="z. B. admin oder name@domain.tld" />
     <label class="label">Passwort</label>
     <input id="passwort" type="password" autocomplete="current-password" />
     <div class="row-left">
@@ -240,17 +240,46 @@
   let pos = 0;          // Index der „Aktuell“-Klasse
   let initialized = false; // erst nach „Konferenz starten“ true
 
+<script type="module">
+  // ... bestehende Imports & init ...
+
+  // -----------------------
+  // Alias-Mapping festlegen
+  // -----------------------
+  const USERNAME_ALIASES = {
+    // username -> email
+    "admin": "admin@gvp-notenkonferenz.local",
+    // falls du weitere Kurzlogins haben willst:
+    // "leitung": "leitung@gvp-notenkonferenz.local",
+  };
+
+  function mapToEmail(input) {
+    const raw = (input || "").trim();
+    const key = raw.toLowerCase();
+    if (USERNAME_ALIASES[key]) return USERNAME_ALIASES[key];
+    // wenn es wie eine E‑Mail aussieht, einfach durchlassen
+    return raw;
+  }
+
   // --- Login ---
   document.getElementById("loginBtn").onclick = async () => {
-    const email = (document.getElementById("email").value || "").trim();
-    const pass  = (document.getElementById("passwort").value || "").trim();
+    const emailOrUser = (document.getElementById("email").value || "").trim();
+    const pass        = (document.getElementById("passwort").value || "").trim();
+    const loginError  = document.getElementById("loginError");
     loginError.textContent = "";
+
     try {
+      const email = mapToEmail(emailOrUser);
       await signInWithEmailAndPassword(auth, email, pass);
     } catch (err) {
-      loginError.textContent = err?.message ?? String(err);
+      // freundlichere Fehlermeldung
+      const msg = (err?.code === "auth/invalid-login-credentials" || err?.code === "auth/wrong-password")
+        ? "Benutzername/E‑Mail oder Passwort falsch."
+        : (err?.message ?? String(err));
+      loginError.textContent = msg;
     }
   };
+
 
   onAuthStateChanged(auth, async (user) => {
     const signedIn = !!user;
@@ -572,6 +601,7 @@ window.addEventListener("keydown", (e) => {
 
 </body>
 </html>
+
 
 
 
