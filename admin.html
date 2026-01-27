@@ -11,7 +11,7 @@
       --fg: #eaf2ff;
       --c-aktuell: #0ea5e9;
       --c-vorb:    #22c55e;
-      --card-bg:   #151a31;
+      --card-bg:   #151a31;"
       --card-bd:   #2a335f;
     }
     body { font-family: system-ui, Segoe UI, Roboto, Arial, sans-serif; margin:0; padding:20px; background:var(--bg); color:var(--fg); }
@@ -530,9 +530,25 @@ function aktualisiereStartNextLabel() {
 
     closeListEditor();
   };
+
+
+// --- ENTER-Taste löst den "Nächste Klasse" / "Konferenz starten" Button aus ---
+window.addEventListener("keydown", (e) => {
+  // ENTER, aber Shift+Enter oder Ctrl+Enter NICHT
+  if (e.key === "Enter" && !e.shiftKey && !e.ctrlKey && !e.altKey) {
+    // wenn Login sichtbar → nicht automatisch starten
+    if (loginBox.style.display !== "none") return;
+
+    // Button auslösen
+    startNextBtn.click();
+  }
+});
+
+
 </script>
 
 </body>
 </html>
+
 
 
