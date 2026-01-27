@@ -253,7 +253,20 @@
     loginBox.style.display = signedIn ? "none" : "";
     panel.style.display    = signedIn ? "" : "none";
     if (!signedIn) return;
-
+    // --- Automatischer Reset bei Login ---
+    initialized = false;
+    pos = 0;
+    
+    // In der Anzeige zurücksetzen (Klassenliste bleibt unberührt!)
+    const now = Date.now();
+    await update(ref(db, "anzeige"), {
+      aktuell: "",
+      vorbereitung: "",
+      aktualisiertAm: now,
+      updatedAt: now
+    });
+    
+    await speichereSteuerung();
     // Zustand laden
     await ladeSteuerung();
 
@@ -549,6 +562,7 @@ window.addEventListener("keydown", (e) => {
 
 </body>
 </html>
+
 
 
 
