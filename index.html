@@ -54,11 +54,82 @@
       font-weight: 600;
       letter-spacing: .08em;
       text-transform: uppercase;
-      font-size: clamp(14px, 2.2vw, 26px);
+      font-size: clamp(14px, 2.2vw, 20px);
     }
 
-    /* 🍀 MAXIMAL GROSSE SCHRIFT */
+    /* >>> GROSS, KLAR UND ÜBERSICHTLICH <<< */
     .value {
       margin-top: .25em;
       font-weight: 900;
       line-height: 1.0;
+      font-size: clamp(90px, 20vw, 340px); /* MASSIV größer */
+      word-wrap: break-word;
+      letter-spacing: 0.01em;
+    }
+
+    .footer {
+      position: fixed;
+      bottom: 10px;
+      right: 16px;
+      opacity: .5;
+      font-size: 12px;
+    }
+
+    @media (orientation: portrait) {
+      .wrap { grid-template-rows: auto auto; }
+      .value {
+        font-size: clamp(80px, 22vw, 300px); /* auch hier MEHR groß */
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="card aktuell">
+      <div class="label">Laufende Klassenkonferenz</div>
+      <div id="aktuell" class="value">–</div>
+    </section>
+    <section class="card vorb">
+      <div class="label">In Vorbereitung</div>
+      <div id="vorb" class="value">–</div>
+    </section>
+  </div>
+
+  <div class="footer" id="ts"></div>
+
+  <script type="module">
+    import { initializeApp }   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCuLVnVCnpc1JPO5eRsUpwOdTjacZ6cgso",
+      authDomain: "gvp-notenkonferenz.firebaseapp.com",
+      databaseURL: "https://gvp-notenkonferenz-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "gvp-notenkonferenz",
+      storageBucket: "gvp-notenkonferenz.firebasestorage.app",
+      messagingSenderId: "443453428623",
+      appId: "1:443453428623:web:3d3640bfe6ed2c38e871fa",
+      measurementId: "G-SVZX9DEJNP"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db  = getDatabase(app);
+
+    const aktuellEl = document.getElementById('aktuell');
+    const vorbEl    = document.getElementById('vorb');
+    const tsEl      = document.getElementById('ts');
+
+    onValue(ref(db, 'anzeige'), (snap) => {
+      const v = snap.val() || {};
+      aktuellEl.textContent = v.aktuell || '–';
+      vorbEl.textContent    = v.vorbereitung || '–';
+
+      document.documentElement.style.setProperty('--color-aktuell', v.colorAktuell || '#0ea5e9');
+      document.documentElement.style.setProperty('--color-vorb',    v.colorVorb    || '#22c55e');
+
+      const dt = v.updatedAt ? new Date(v.updatedAt) : null;
+      tsEl.textContent = dt ? `Stand: ${dt.toLocaleString('de-AT')}` : '';
+    });
+  </script>
+</body>
+</html>
