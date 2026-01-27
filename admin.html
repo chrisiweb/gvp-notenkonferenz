@@ -253,11 +253,14 @@
     loginBox.style.display = signedIn ? "none" : "";
     panel.style.display    = signedIn ? "" : "none";
     if (!signedIn) return;
-    // --- Automatischer Reset bei Login ---
+  
+    // 1) Klassenliste, letzter Zustand, Position laden
+    await ladeSteuerung();
+  
+    // 2) Nur Reset der Position + Anzeige – Klassenliste bleibt wie geladen!
     initialized = false;
     pos = 0;
-    
-    // In der Anzeige zurücksetzen (Klassenliste bleibt unberührt!)
+  
     const now = Date.now();
     await update(ref(db, "anzeige"), {
       aktuell: "",
@@ -265,19 +268,18 @@
       aktualisiertAm: now,
       updatedAt: now
     });
-    
+  
+    // 3) Speichern, aber OHNE die Liste zu überschreiben
     await speichereSteuerung();
-    // Zustand laden
-    await ladeSteuerung();
-
-    // UI initial
+  
+    // 4) UI aktualisieren
     editorTextarea.value = klassen.join("\n");
     aktualisiereKarten();
     aktualisiereStartNextLabel();
     zeigeInfo();
     aktualisiereKlassenListe();
-    // nach Render ein zweites Mal, falls Layout erst dann final ist
     requestAnimationFrame(keepActiveAndNextInView);
+  });
 
     // bereits laufend → Anzeige synchronisieren
     if (initialized) await schreibeAnzeige();
@@ -562,6 +564,7 @@ window.addEventListener("keydown", (e) => {
 
 </body>
 </html>
+
 
 
 
