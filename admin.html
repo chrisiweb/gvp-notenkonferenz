@@ -253,33 +253,18 @@
     loginBox.style.display = signedIn ? "none" : "";
     panel.style.display    = signedIn ? "" : "none";
     if (!signedIn) return;
-  
-    // 1) Klassenliste, letzter Zustand, Position laden
+
+    // Zustand laden
     await ladeSteuerung();
-  
-    // 2) Nur Reset der Position + Anzeige – Klassenliste bleibt wie geladen!
-    initialized = false;
-    pos = 0;
-  
-    const now = Date.now();
-    await update(ref(db, "anzeige"), {
-      aktuell: "",
-      vorbereitung: "",
-      aktualisiertAm: now,
-      updatedAt: now
-    });
-  
-    // 3) Speichern, aber OHNE die Liste zu überschreiben
-    await speichereSteuerung();
-  
-    // 4) UI aktualisieren
+
+    // UI initial
     editorTextarea.value = klassen.join("\n");
     aktualisiereKarten();
     aktualisiereStartNextLabel();
     zeigeInfo();
     aktualisiereKlassenListe();
+    // nach Render ein zweites Mal, falls Layout erst dann final ist
     requestAnimationFrame(keepActiveAndNextInView);
-  });
 
     // bereits laufend → Anzeige synchronisieren
     if (initialized) await schreibeAnzeige();
@@ -564,8 +549,5 @@ window.addEventListener("keydown", (e) => {
 
 </body>
 </html>
-
-
-
 
 
