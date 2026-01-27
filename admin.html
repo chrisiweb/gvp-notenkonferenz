@@ -16,7 +16,8 @@
     }
     body { font-family: system-ui, Segoe UI, Roboto, Arial, sans-serif; margin:0; padding:20px; background:var(--bg); color:var(--fg); }
     .box { background: var(--card-bg); padding:20px; border-radius:12px; max-width:900px; margin:auto; border:1px solid var(--card-bd); }
-    input { width:100%; padding:10px; border-radius:8px; background:#0f1428; color:#eaf2ff; border:1px solid var(--card-bd); }
+    textarea, input { width:100%; padding:10px; border-radius:8px; background:#0f1428; color:#eaf2ff; border:1px solid var(--card-bd); }
+    textarea { height:220px; }
     button { padding:10px 16px; border:0; border-radius:8px; cursor:pointer; font-size:16px; }
     .btn-primary { background:#3b82f6; color:white; }
     .btn-red     { background:#ef4444; color:white; }
@@ -27,7 +28,7 @@
     .error { color:#ffb4b4; margin-top:8px; }
     .saving { opacity:.7; font-size:12px; }
 
-    /* Karten */
+    /* Karten für Aktuell/In Vorbereitung (kompakter als im Index) */
     .cards { display:grid; grid-template-columns: 1fr 1fr; gap:14px; margin-top:14px; }
     .card { background: linear-gradient(135deg, rgba(255,255,255,.03), rgba(255,255,255,.01)); border:1px solid var(--card-bd); border-radius:14px; padding:16px; box-shadow: 0 10px 30px rgba(0,0,0,.25); }
     .card.aktuell { border-color: color-mix(in lab, var(--c-aktuell) 60%, transparent); }
@@ -36,7 +37,7 @@
     .card .value { margin-top:.25em; font-weight:800; line-height:1.1; font-size: clamp(28px, 5vw, 64px); word-wrap:break-word; }
     @media (max-width: 740px) { .cards { grid-template-columns: 1fr; } }
 
-    /* --- Interaktive klickbare Klassenliste --- */
+    /* --- Interaktive Klassenliste --- */
     .listView {
       margin-top: 10px;
       border: 1px solid var(--card-bd);
@@ -52,7 +53,6 @@
       cursor: pointer;
       border-bottom: 1px solid rgba(255,255,255,0.05);
       display:flex; gap:8px; align-items:center;
-      scroll-margin: 10px; /* zusätzlicher Rand beim Scrollen zu Elementen */
     }
     .listItem:hover {
       background: rgba(255,255,255,0.05);
@@ -62,49 +62,19 @@
       border-left: 4px solid var(--c-aktuell);
       padding-left: 8px;
     }
-    .listItem.next {
-      background: rgba(34,197,94,0.16);           /* etwas kräftigeres Grün */
-      border-left: 4px solid var(--c-vorb);
-      padding-left: 8px;
-    }
     .pill {
       display:inline-block; font-size:11px; padding:2px 6px; border-radius:999px;
-      background: rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.1);
       opacity:.9;
     }
-    .pill.vorb { background: rgba(34,197,94,0.22); }
+    .pill.vorb { background: rgba(34,197,94,0.18); }    /* grünlicher Ton */
     .listEmpty { padding:8px 12px; opacity:.7; font-style:italic; }
-
-    /* --- Modal für „Klassenliste bearbeiten“ --- */
-    .modal { position: fixed; inset: 0; background: rgba(0,0,0,.5); display:none; align-items:center; justify-content:center; padding:20px; z-index:1000; }
-    .modal.open { display:flex; }
-    .modal-content {
-      background: var(--card-bg);
-      border: 1px solid var(--card-bd);
-      border-radius: 12px;
-      width: min(800px, 92vw);
-      max-height: 90vh;
-      overflow: auto;
-      padding: 16px;
-      box-shadow: 0 10px 30px rgba(0,0,0,.4);
-    }
-    .modal-content h3 { margin:0 0 10px; }
-    .modal-content textarea {
-      width:100%;
-      height: 50vh;
-      resize: vertical;
-      padding:10px; border-radius:8px; border:1px solid var(--card-bd);
-      background:#0f1428; color:#eaf2ff; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    }
-    .modal-actions { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-top:10px; }
-    .btn-ghost { background: transparent; color: var(--fg); border: 1px solid var(--card-bd); }
   </style>
 </head>
 <body>
 
 <div class="box">
   <h2>Admin – Notenkonferenz</h2>
-
 
   <!-- Login -->
   <div id="loginBox">
@@ -122,7 +92,6 @@
     </div>
   </div>
 
-
   <!-- Panel -->
   <div id="panel" style="display:none;">
     <!-- Vorschau-Karten -->
@@ -137,25 +106,20 @@
       </div>
     </div>
 
-    <!-- Aktionen oben -->
-    <div class="row-space" style="margin-top:12px;">
-      <div class="row-left">
-        <button id="editBtn" class="btn-ghost" title="Klassenliste bearbeiten und speichern">Klassenliste bearbeiten</button>
-        <span id="saveHint" class="saving" aria-live="polite"></span>
-      </div>
-      <div class="muted">Klicke auf eine Klasse, um direkt zu dieser Klasse zu wechseln.</div>
-    </div>
+    <label class="label">Liste aller Klassen (eine pro Zeile)</label>
+    <textarea id="klassenInput" placeholder="z. B.&#10;1A&#10;1B&#10;1C&#10;2A&#10;…"></textarea>
 
     <!-- Interaktive, klickbare Liste mit Markierung -->
     <div id="klassenList" class="listView"></div>
 
-    <!-- Buttons: links Start/Nächste, rechts Zurück + Neustart -->
+    <!-- Buttons: links Start/Nächste, rechts Zurück + Reset -->
     <div class="row-space">
       <div class="row-left">
-        <button id="startNextBtn" class="btn-primary" title="Startet mit den ersten zwei Klassen; danach »Nächste Klasse«">Konferenz starten</button>
+        <button id="startNextBtn" class="btn-primary" title="Startet mit den ersten zwei Klassen; danach »Nächste Klasse«">Start</button>
+        <span id="saveHint" class="saving" aria-live="polite"></span>
       </div>
       <div class="row-left">
-        <button id="prevBtn" class="btn-red" title="Geht einen Schritt zurück (In Vorbereitung → Aktuell; vorige Klasse → in Vorbereitung)">Eine Klasse zurückspringen</button>
+        <button id="prevBtn" class="btn-red" title="Geht einen Schritt zurück (Vorbereitung → Aktuell; davorige Klasse → Vorbereitung)">Zurück</button>
         <button id="resetBtn" class="btn-red" style="background:#b91c1c;">Reset</button>
       </div>
     </div>
@@ -164,24 +128,8 @@
   </div>
 </div>
 
-<!-- Modal: Klassenliste bearbeiten -->
-<div id="listModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-hidden="true">
-  <div class="modal-content">
-    <h3 id="modalTitle">Klassenliste bearbeiten</h3>
-    <textarea id="editorTextarea" placeholder="z. B.&#10;1A&#10;1B&#10;1C&#10;2A&#10;…"></textarea>
-    <div class="modal-actions">
-      <div class="muted">Tipp: Eine Klasse pro Zeile. Leere Zeilen werden ignoriert.</div>
-      <div class="row-left">
-        <button id="cancelEditBtn" class="btn-ghost">Abbrechen</button>
-        <button id="saveEditBtn" class="btn-primary">Speichern</button>
-      </div>
-    </div>
-  </div>
-</div>
-
 <script type="module">
-  const ADMIN_EMAIL = "admin@gvp-notenkonferenz.local"; //
-  // --- Firebase Config ---
+  // --- Deine Firebase Config ---
   const firebaseConfig = {
     apiKey: "AIzaSyCuLVnVCnpc1JPO5eRsUpwOdTjacZ6cgso",
     authDomain: "gvp-notenkonferenz.firebaseapp.com",
@@ -201,50 +149,36 @@
   const auth = getAuth(app);
   const db   = getDatabase(app);
 
-  // DOM
-  const loginBox      = document.getElementById("loginBox");
-  const panel         = document.getElementById("panel");
-  const info          = document.getElementById("info");
-  const startNextBtn  = document.getElementById("startNextBtn");
-  const prevBtn       = document.getElementById("prevBtn");
-  const resetBtn      = document.getElementById("resetBtn");
-  const klassenList   = document.getElementById("klassenList");
-  const saveHint      = document.getElementById("saveHint");
-  const cardAktuell   = document.getElementById("cardAktuell");
-  const cardVorb      = document.getElementById("cardVorb");
-  const loginError    = document.getElementById("loginError");
-  const editBtn       = document.getElementById("editBtn");
-
-  // Modal
-  const listModal       = document.getElementById("listModal");
-  const editorTextarea  = document.getElementById("editorTextarea");
-  const saveEditBtn     = document.getElementById("saveEditBtn");
-  const cancelEditBtn   = document.getElementById("cancelEditBtn");
+  const loginBox = document.getElementById("loginBox");
+  const panel    = document.getElementById("panel");
+  const info     = document.getElementById("info");
+  const startNextBtn = document.getElementById("startNextBtn");
+  const prevBtn      = document.getElementById("prevBtn");
+  const resetBtn     = document.getElementById("resetBtn");
+  const klassenInput = document.getElementById("klassenInput");
+  const saveHint     = document.getElementById("saveHint");
+  const cardAktuell  = document.getElementById("cardAktuell");
+  const cardVorb     = document.getElementById("cardVorb");
+  const klassenList  = document.getElementById("klassenList");
+  const loginError   = document.getElementById("loginError");
 
   // Zustand
   let klassen = [];     // Array der Klassen
   let pos = 0;          // Index der „Aktuell“-Klasse
-  let initialized = false; // erst nach „Konferenz starten“ true
+  let initialized = false; // erst nach „Start“ true
+  let saveTimer = null;
 
   // --- Login ---
-document.getElementById("loginBtn").onclick = async () => {
-  const pass  = (document.getElementById("passwort").value || "").trim();
-  const loginError = document.getElementById("loginError");
-  loginError.textContent = "";
-
-  if (!pass) {
-    loginError.textContent = "Bitte Passwort eingeben.";
-    return;
-  }
-  try {
-    // Melde dich intern mit der fest hinterlegten Admin-Adresse an.
-    await signInWithEmailAndPassword(auth, ADMIN_EMAIL, pass);
-  } catch (err) {
-    // Einheitliche Meldung, kein Leaken, ob E-Mail existiert etc.
-    loginError.textContent = "Anmeldung fehlgeschlagen. Bitte Passwort prüfen.";
-    console.error(err);
-  }
-};
+  document.getElementById("loginBtn").onclick = async () => {
+    const email = (document.getElementById("email").value || "").trim();
+    const pass  = (document.getElementById("passwort").value || "").trim();
+    loginError.textContent = "";
+    try {
+      await signInWithEmailAndPassword(auth, email, pass);
+    } catch (err) {
+      loginError.textContent = err?.message ?? String(err);
+    }
+  };
 
   onAuthStateChanged(auth, async (user) => {
     const signedIn = !!user;
@@ -252,20 +186,19 @@ document.getElementById("loginBtn").onclick = async () => {
     panel.style.display    = signedIn ? "" : "none";
     if (!signedIn) return;
 
-    // Zustand laden
+    // Beim Anmelden: Zustand laden (Liste, pos, initialized)
     await ladeSteuerung();
-
-    // UI initial
-    editorTextarea.value = klassen.join("\n");
-    aktualisiereKarten();
+    // UI füllen
+    klassenInput.value = klassen.join("\n");
+    aktualisiereKarten();     // zeigt –/– solange initialized=false
     aktualisiereStartNextLabel();
     zeigeInfo();
     aktualisiereKlassenListe();
-    // nach Render ein zweites Mal, falls Layout erst dann final ist
-    requestAnimationFrame(keepActiveAndNextInView);
 
-    // bereits laufend → Anzeige synchronisieren
-    if (initialized) await schreibeAnzeige();
+    // WICHTIG: KEIN automatisches Schreiben in 'anzeige', solange nicht initialized
+    if (initialized) {
+      await schreibeAnzeige(); // nur synchronisieren, falls bereits gestartet war
+    }
   });
 
   // --- Persistenz: steuerung { liste, pos, initialized } ---
@@ -292,12 +225,11 @@ document.getElementById("loginBtn").onclick = async () => {
     await update(ref(db, "anzeige"), {
       aktuell,
       vorbereitung: vorb,
-      aktualisiertAm: now,   // deutsch
-      updatedAt: now         // englisch – kompatibel zum index.html
+      aktualisiertAm: now,   // deutscher Key
+      updatedAt: now         // englischer Key – kompatibel zum index.html
     });
   }
 
-  // --- UI-Helper ---
   function zeigeInfo() {
     const a = (initialized ? (klassen[pos] || "—") : "—");
     const v = (initialized ? (klassen[pos + 1] || "—") : "—");
@@ -313,11 +245,11 @@ document.getElementById("loginBtn").onclick = async () => {
     cardVorb.textContent    = initialized ? (klassen[pos + 1] || "—") : "—";
   }
 
-function aktualisiereStartNextLabel() {
-    startNextBtn.textContent = initialized ? "Nächste Klasse" : "Konferenz starten";
-}
+  function aktualisiereStartNextLabel() {
+    startNextBtn.textContent = initialized ? "Nächste Klasse" : "Start";
+  }
 
-  // --- Klickbare Liste rendern ---
+  // --- Interaktive, klickbare Liste rendern ---
   function aktualisiereKlassenListe() {
     klassenList.innerHTML = "";
     if (!klassen.length) {
@@ -330,22 +262,19 @@ function aktualisiereStartNextLabel() {
 
     klassen.forEach((k, i) => {
       const div = document.createElement("div");
-      div.className = "listItem";
-      if (initialized && i === pos) div.classList.add("active");
-      else if (initialized && i === pos + 1) div.classList.add("next");
-      div.dataset.index = String(i);
-
+      div.className = "listItem" + ((initialized && i === pos) ? " active" : "");
+      // kleines Label für "nächste" Klasse
       const label = document.createElement("div");
       label.textContent = k;
       label.style.flex = "1 1 auto";
 
       const pill = document.createElement("span");
       pill.className = "pill";
-      if (initialized && i === pos) {
-        pill.textContent = "Aktuell";
-      } else if (initialized && i === pos + 1) {
+      if (initialized && i === pos + 1) {
         pill.textContent = "Vorbereitung";
         pill.classList.add("vorb");
+      } else if (initialized && i === pos) {
+        pill.textContent = "Aktuell";
       } else {
         pill.textContent = "";
         pill.style.opacity = "0";
@@ -354,14 +283,9 @@ function aktualisiereStartNextLabel() {
       div.appendChild(label);
       div.appendChild(pill);
 
-      // Klicke auf eine Klasse, um direkt zu dieser Klasse zu wechseln.
+      // Klick → direkt zu dieser Klasse springen
       div.onclick = async () => {
-        // bereits aktiv -> nichts tun
-        if (i === pos) return;
-
-        const ok = confirm("Möchtest du die aktuelle Klasse wirklich ändern?");
-        if (!ok) return;
-
+        if (!klassen.length) return;
         pos = i;
         initialized = true;
         await speichereSteuerung();
@@ -370,51 +294,43 @@ function aktualisiereStartNextLabel() {
         aktualisiereStartNextLabel();
         zeigeInfo();
         aktualisiereKlassenListe();
-        keepActiveAndNextInView();
+        // Aktive Zeile sichtbar halten
+        div.scrollIntoView({ block: "nearest", behavior: "smooth" });
       };
 
       klassenList.appendChild(div);
     });
   }
 
-  // Beide (Aktuell & Vorbereitung) im Sichtbereich halten – mit Puffer
-  function keepActiveAndNextInView() {
-    if (!initialized) return;
-    const cont = klassenList;
-    if (!cont) return;
+  // --- Auto-Save der Liste (debounced) ---
+  function scheduleAutoSave() {
+    saveHint.textContent = "Speichern …";
+    if (saveTimer) clearTimeout(saveTimer);
+    saveTimer = setTimeout(async () => {
+      // Liste übernehmen
+      klassen = klassenInput.value
+        .split("\n")
+        .map(x => x.trim())
+        .filter(x => x.length > 0);
+      // pos begrenzen, falls Liste kürzer wurde
+      if (pos >= klassen.length) pos = Math.max(klassen.length - 1, 0);
+      await speichereSteuerung();
+      // NICHT automatisch in 'anzeige' schreiben, wenn noch nicht gestartet
+      if (initialized) await schreibeAnzeige();
 
-    const active = cont.querySelector(".listItem.active");
-    const next   = cont.querySelector(".listItem.next");
-    if (!active && !next) return;
+      aktualisiereKarten();
+      aktualisiereStartNextLabel();
+      zeigeInfo();
+      aktualisiereKlassenListe();
 
-    const crect = cont.getBoundingClientRect();
-    let top = Infinity, bottom = -Infinity;
-
-    // Positionen relativ zum Container + scrollTop ermitteln
-    [active, next].forEach(el => {
-      if (!el) return;
-      const r = el.getBoundingClientRect();
-      const relTop = (r.top - crect.top) + cont.scrollTop;
-      const relBottom = (r.bottom - crect.top) + cont.scrollTop;
-      if (relTop < top) top = relTop;
-      if (relBottom > bottom) bottom = relBottom;
-    });
-
-    if (top === Infinity || bottom === -Infinity) return;
-
-    const padding = 12; // zusätzlicher Rand oben und unten
-    const viewTop = cont.scrollTop;
-    const viewBottom = viewTop + cont.clientHeight;
-
-    // Falls der obere Rand (mit Puffer) außerhalb ist → nach oben scrollen
-    if (top - padding < viewTop) {
-      cont.scrollTo({ top: Math.max(top - padding, 0), behavior: "smooth" });
-    }
-    // Falls der untere Rand (mit Puffer) außerhalb ist → nach unten scrollen
-    else if (bottom + padding > viewBottom) {
-      cont.scrollTo({ top: bottom + padding - cont.clientHeight, behavior: "smooth" });
-    }
+      saveHint.textContent = "Gespeichert ✔";
+      setTimeout(() => saveHint.textContent = "", 1500);
+    }, 500);
   }
+
+  klassenInput.addEventListener("input", scheduleAutoSave);
+  klassenInput.addEventListener("change", scheduleAutoSave);
+  klassenInput.addEventListener("blur",  scheduleAutoSave);
 
   // --- Bedienlogik ---
   startNextBtn.onclick = async () => {
@@ -423,8 +339,10 @@ function aktualisiereStartNextLabel() {
       return;
     }
     if (!initialized) {
+      // Erstmaliger Start: nicht vorwärts schalten, nur initialisieren und schreiben
       initialized = true;
     } else {
+      // Nächste
       if (pos < klassen.length - 1) pos++;
     }
     await speichereSteuerung();
@@ -433,8 +351,6 @@ function aktualisiereStartNextLabel() {
     aktualisiereStartNextLabel();
     zeigeInfo();
     aktualisiereKlassenListe();
-    // nach DOM-Update Scroll anpassen
-    requestAnimationFrame(keepActiveAndNextInView);
   };
 
   prevBtn.onclick = async () => {
@@ -446,19 +362,22 @@ function aktualisiereStartNextLabel() {
     aktualisiereStartNextLabel();
     zeigeInfo();
     aktualisiereKlassenListe();
-    requestAnimationFrame(keepActiveAndNextInView);
   };
 
-  // Neustart
-  resetBtn.onclick = async () => {
+  // Reset / Neustart
+  document.getElementById("resetBtn").onclick = async () => {
     if (!confirm("Soll die Notenkonferenz wirklich neu gestartet werden?")) {
       return;
     }
+
+    // zurücksetzen
     initialized = false;
     pos = 0;
 
+    // speichern
     await speichereSteuerung();
 
+    // Anzeige komplett zurücksetzen
     const now = Date.now();
     await update(ref(db, "anzeige"), {
       aktuell: "",
@@ -467,74 +386,15 @@ function aktualisiereStartNextLabel() {
       updatedAt: now
     });
 
-    aktualisiereKarten();
-    aktualisiereStartNextLabel();
-    zeigeInfo();
-    aktualisiereKlassenListe();
-    // keine aktive Markierung → kein Scroll nötig
-  };
-
-  // --- Modal öffnen/schließen ---
-  function openListEditor() {
-    editorTextarea.value = klassen.join("\n");
-    listModal.classList.add("open");
-    listModal.setAttribute("aria-hidden", "false");
-    setTimeout(() => editorTextarea.focus(), 50);
-  }
-  function closeListEditor() {
-    listModal.classList.remove("open");
-    listModal.setAttribute("aria-hidden", "true");
-  }
-
-  editBtn.onclick = openListEditor;
-  cancelEditBtn.onclick = closeListEditor;
-  listModal.addEventListener("click", (e) => {
-    if (e.target === listModal) closeListEditor();
-  });
-  window.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && listModal.classList.contains("open")) closeListEditor();
-  });
-
-  // Speichern aus dem Modal
-  saveEditBtn.onclick = async () => {
-    const lines = editorTextarea.value
-      .split("\n")
-      .map(s => s.trim())
-      .filter(Boolean);
-
-    // Update Liste
-    klassen = lines;
-
-    // Position & Init anpassen
-    if (klassen.length === 0) {
-      pos = 0;
-      initialized = false;
-    } else if (pos >= klassen.length) {
-      pos = klassen.length - 1;
-    }
-
-    await speichereSteuerung();
-    if (initialized) await schreibeAnzeige();
-
     // UI aktualisieren
     aktualisiereKarten();
     aktualisiereStartNextLabel();
     zeigeInfo();
     aktualisiereKlassenListe();
-    requestAnimationFrame(keepActiveAndNextInView);
-
-    saveHint.textContent = "Gespeichert ✔";
-    setTimeout(() => saveHint.textContent = "", 1500);
-
-    closeListEditor();
   };
 </script>
 
 </body>
 </html>
-
-
-
-
-
+``
 
