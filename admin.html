@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Notenkonferenz – Admin</title>
+  <title>Liveticker Notenkonferenz - Admin</title>
   <meta name="robots" content="noindex,nofollow" />
   <style>
     :root {
@@ -18,6 +18,15 @@
     .box { background: var(--card-bg); padding:20px; border-radius:12px; max-width:900px; margin:auto; border:1px solid var(--card-bd); }
     input { width:100%; padding:10px; border-radius:8px; background:#0f1428; color:#eaf2ff; border:1px solid var(--card-bd); }
     button { padding:10px 16px; border:0; border-radius:8px; cursor:pointer; font-size:16px; }
+  .big-button {
+    padding: 20px 32px !important;  /* mehr Innenabstand */
+    font-size: 24px !important;     /* größere Schrift */
+    min-width: 140px;               /* ca. 2 cm */
+    min-height: 140px;              /* ca. 2 cm */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
     .btn-primary { background:#3b82f6; color:white; }
     .btn-red     { background:#ef4444; color:white; }
     .row-space { display:flex; gap:8px; align-items:center; justify-content:space-between; margin-top:10px; }
@@ -103,7 +112,7 @@
 <body>
 
 <div class="box">
-  <h2>Admin – Notenkonferenz</h2>
+  <h2>Admin – Notenkonferenz Liveticker</h2>
 
 
   <!-- Login -->
@@ -152,7 +161,9 @@
     <!-- Buttons: links Start/Nächste, rechts Zurück + Neustart -->
     <div class="row-space">
       <div class="row-left">
-        <button id="startNextBtn" class="btn-primary" title="Startet mit den ersten zwei Klassen; danach »Nächste Klasse«">Konferenz starten</button>
+        <button id="startNextBtn" class="btn-primary big-button" title="Startet mit den ersten zwei Klassen; danach »Nächste Klasse«">
+        Konferenz starten
+      </button>
       </div>
       <div class="row-left">
         <button id="prevBtn" class="btn-red" title="Geht einen Schritt zurück (In Vorbereitung → Aktuell; vorige Klasse → in Vorbereitung)">Eine Klasse zurückspringen</button>
@@ -523,3 +534,4 @@ function aktualisiereStartNextLabel() {
 
 </body>
 </html>
+
