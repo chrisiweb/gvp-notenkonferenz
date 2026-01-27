@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Liveticker Notenkonferenz - Admin</title>
+  <title>GvP Notenkonferenz Liveticker</title>
   <meta name="robots" content="noindex,nofollow" />
   <style>
     :root {
@@ -112,13 +112,13 @@
 <body>
 
 <div class="box">
-  <h2>Admin – Notenkonferenz Liveticker</h2>
+  <h2>GvP Notenkonferenz Liveticker</h2>
 
 
   <!-- Login -->
   <div id="loginBox">
-    <label class="label">Benutzername oder E‑Mail</label>
-    <input id="email" type="text" autocomplete="username" placeholder="z. B. admin oder name@domain.tld" />
+    <label class="label">Benutzername</label>
+    <input id="email" type="text" autocomplete="username"/>
     <label class="label">Passwort</label>
     <input id="passwort" type="password" autocomplete="current-password" />
     <div class="row-left">
@@ -159,8 +159,8 @@
     <div id="klassenList" class="listView"></div>
 
     <!-- Buttons: links Start/Nächste, rechts Zurück + Neustart -->
-    <div class="row-space">
     <div class="muted">Klicke auf eine Klasse, um direkt zu dieser Klasse zu wechseln.</div>
+    <div class="row-space">
       <div class="row-left">
         <button id="editBtn" class="btn-ghost" title="Klassenliste bearbeiten und speichern">Klassenliste bearbeiten</button>
         <span id="saveHint" class="saving" aria-live="polite"></span>
@@ -598,4 +598,5 @@ window.addEventListener("keydown", (e) => {
 
 </body>
 </html>
+
 
