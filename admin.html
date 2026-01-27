@@ -254,6 +254,28 @@
     panel.style.display    = signedIn ? "" : "none";
     if (!signedIn) return;
 
+    initialized = false;
+    pos = 0;
+
+    await speichereSteuerung();
+
+    const now = Date.now();
+    await update(ref(db, "anzeige"), {
+      aktuell: "",
+      vorbereitung: "",
+      aktualisiertAm: now,
+      updatedAt: now
+    });
+
+    aktualisiereKarten();
+    aktualisiereStartNextLabel();
+    zeigeInfo();
+    aktualisiereKlassenListe();
+    // keine aktive Markierung → kein Scroll nötig
+    
+    // Zustand laden
+    await ladeSteuerung();
+    
     // UI initial
     editorTextarea.value = klassen.join("\n");
     aktualisiereKarten();
@@ -546,6 +568,7 @@ window.addEventListener("keydown", (e) => {
 
 </body>
 </html>
+
 
 
 
