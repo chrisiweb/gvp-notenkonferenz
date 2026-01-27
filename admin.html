@@ -141,7 +141,7 @@
         <button id="editBtn" class="btn-ghost" title="Klassenliste bearbeiten und speichern">Klassenliste bearbeiten</button>
         <span id="saveHint" class="saving" aria-live="polite"></span>
       </div>
-      <div class="muted">Klick in die Liste unten wechselt direkt (mit Bestätigung).</div>
+      <div class="muted">Klicke auf eine Klasse, um direkt zu dieser Klasse zu wechseln.</div>
     </div>
 
     <!-- Interaktive, klickbare Liste mit Markierung -->
@@ -153,7 +153,7 @@
         <button id="startNextBtn" class="btn-primary" title="Startet mit den ersten zwei Klassen; danach »Nächste Klasse«">Konferenz starten</button>
       </div>
       <div class="row-left">
-        <button id="prevBtn" class="btn-red" title="Geht einen Schritt zurück (In Vorbereitung → Aktuell; vorige Klasse → in Vorbereitung)">Eine Klasse zurück</button>
+        <button id="prevBtn" class="btn-red" title="Geht einen Schritt zurück (In Vorbereitung → Aktuell; vorige Klasse → in Vorbereitung)">Eine Klasse zurückspringen</button>
         <button id="resetBtn" class="btn-red" style="background:#b91c1c;">Reset</button>
       </div>
     </div>
@@ -221,7 +221,7 @@
   // Zustand
   let klassen = [];     // Array der Klassen
   let pos = 0;          // Index der „Aktuell“-Klasse
-  let initialized = false; // erst nach „Start“ true
+  let initialized = false; // erst nach „Konferenz starten“ true
 
   // --- Login ---
   document.getElementById("loginBtn").onclick = async () => {
@@ -303,7 +303,7 @@
   }
 
   function aktualisiereStartNextLabel() {
-    startNextBtn.textContent = initialized ? "Nächste Klasse" : "Start";
+    startNextBtn.textContent = initialized ? "Nächste Klasse" : "Konferenz starten";
   }
 
   // --- Klickbare Liste rendern ---
@@ -521,4 +521,5 @@
 
 </body>
 </html>
+
 
