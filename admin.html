@@ -80,6 +80,7 @@
         <span id="saveHint" class="saving" aria-live="polite"></span>
       </div>
       <button id="prevBtn" class="btn-red" title="Geht einen Schritt zurück (Vorbereitung → Aktuell; davorige Klasse → Vorbereitung)">Zurück</button>
+      <button id="resetBtn" class="btn-red" style="background:#b91c1c;">Reset</button>
     </div>
 
     <div id="info" class="muted" style="margin-top:10px;"></div>
@@ -259,7 +260,34 @@
     aktualisiereStartNextLabel();
     zeigeInfo();
   };
+
+
+document.getElementById("resetBtn").onclick = async () => {
+  if (!confirm("Soll die Notenkonferenz wirklich neu gestartet werden?")) {
+    return;
+  }
+
+    // zurücksetzen
+    initialized = false;
+    pos = 0;
+  
+    // speichern
+    await speichereSteuerung();
+  
+    // Anzeige komplett zurücksetzen
+    await update(ref(db, "anzeige"), {
+      aktuell: "",
+      vorbereitung: "",
+      aktualisiertAm: Date.now()
+    });
+  
+    // UI aktualisieren
+    aktualisiereKarten();
+    aktualisiereStartNextLabel();
+    zeigeInfo();
+  };
 </script>
 
 </body>
 </html>
+
