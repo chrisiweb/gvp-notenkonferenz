@@ -256,31 +256,6 @@
     
     // Zustand laden
     await ladeSteuerung();
-
-
-    // 2) Nur Reset der Position + Anzeige – Klassenliste bleibt wie geladen!
-    initialized = false;
-    pos = 0;
-  
-    const now = Date.now();
-    await update(ref(db, "anzeige"), {
-      aktuell: "",
-      vorbereitung: "",
-      aktualisiertAm: now,
-      updatedAt: now
-    });
-  
-    // 3) Speichern, aber OHNE die Liste zu überschreiben
-    await speichereSteuerung();
-  
-    // 4) UI aktualisieren
-    editorTextarea.value = klassen.join("\n");
-    aktualisiereKarten();
-    aktualisiereStartNextLabel();
-    zeigeInfo();
-    aktualisiereKlassenListe();
-    requestAnimationFrame(keepActiveAndNextInView);
-  });
     
     // UI initial
     editorTextarea.value = klassen.join("\n");
@@ -574,6 +549,7 @@ window.addEventListener("keydown", (e) => {
 
 </body>
 </html>
+
 
 
 
