@@ -9,8 +9,8 @@
     :root {
       --bg: #0b1020;
       --fg: #eaf2ff;
-      --color-aktuell: #0ea5e9;   /* hellblau */
-      --color-vorb:    #22c55e;   /* grün */
+      --color-aktuell: #0ea5e9;
+      --color-vorb:    #22c55e;
     }
 
     html, body {
@@ -57,12 +57,12 @@
       font-size: clamp(14px, 2.2vw, 20px);
     }
 
-    /* >>> GROSS, KLAR UND ÜBERSICHTLICH <<< */
+    /* Verkleinerte Darstellung der Klassen */
     .value {
       margin-top: .25em;
       font-weight: 900;
       line-height: 1.0;
-      font-size: clamp(72px, 16vw, 260px); /* MASSIV größer */
+      font-size: clamp(48px, 12vw, 180px); /* vorher max 260px → jetzt 180px */
       word-wrap: break-word;
       letter-spacing: 0.01em;
     }
@@ -78,7 +78,7 @@
     @media (orientation: portrait) {
       .wrap { grid-template-rows: auto auto; }
       .value {
-        font-size: clamp(64px, 18vw, 220px); /* auch hier MEHR groß */
+        font-size: clamp(42px, 14vw, 160px); /* etwas kleiner auch im Hochformat */
       }
     }
   </style>
