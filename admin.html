@@ -52,6 +52,7 @@
       cursor: pointer;
       border-bottom: 1px solid rgba(255,255,255,0.05);
       display:flex; gap:8px; align-items:center;
+      scroll-margin: 10px; /* zusätzlicher Rand beim Scrollen zu Elementen */
     }
     .listItem:hover {
       background: rgba(255,255,255,0.05);
@@ -62,7 +63,7 @@
       padding-left: 8px;
     }
     .listItem.next {
-      background: rgba(34,197,94,0.12);           /* dezentes Grün */
+      background: rgba(34,197,94,0.16);           /* etwas kräftigeres Grün */
       border-left: 4px solid var(--c-vorb);
       padding-left: 8px;
     }
@@ -71,7 +72,7 @@
       background: rgba(255,255,255,0.10);
       opacity:.9;
     }
-    .pill.vorb { background: rgba(34,197,94,0.18); }
+    .pill.vorb { background: rgba(34,197,94,0.22); }
     .listEmpty { padding:8px 12px; opacity:.7; font-style:italic; }
 
     /* --- Modal für „Klassenliste bearbeiten“ --- */
@@ -140,7 +141,7 @@
         <button id="editBtn" class="btn-ghost" title="Klassenliste bearbeiten und speichern">Klassenliste bearbeiten</button>
         <span id="saveHint" class="saving" aria-live="polite"></span>
       </div>
-      <div class="muted">Eine Klasse pro Zeile – Klick in die Liste unten wechselt direkt.</div>
+      <div class="muted">Klick in die Liste unten wechselt direkt (mit Bestätigung).</div>
     </div>
 
     <!-- Interaktive, klickbare Liste mit Markierung -->
@@ -249,7 +250,8 @@
     aktualisiereStartNextLabel();
     zeigeInfo();
     aktualisiereKlassenListe();
-    keepActiveAndNextInView();
+    // nach Render ein zweites Mal, falls Layout erst dann final ist
+    requestAnimationFrame(keepActiveAndNextInView);
 
     // bereits laufend → Anzeige synchronisieren
     if (initialized) await schreibeAnzeige();
@@ -341,9 +343,14 @@
       div.appendChild(label);
       div.appendChild(pill);
 
-      // Klick → direkt zu dieser Klasse springen
+      // Klick → Bestätigung → direkt zu dieser Klasse springen
       div.onclick = async () => {
-        if (!klassen.length) return;
+        // bereits aktiv -> nichts tun
+        if (i === pos) return;
+
+        const ok = confirm("Möchtest du die aktuelle Klasse wirklich ändern?");
+        if (!ok) return;
+
         pos = i;
         initialized = true;
         await speichereSteuerung();
@@ -359,7 +366,7 @@
     });
   }
 
-  // Beide (Aktuell & Vorbereitung) im Sichtbereich halten
+  // Beide (Aktuell & Vorbereitung) im Sichtbereich halten – mit Puffer
   function keepActiveAndNextInView() {
     if (!initialized) return;
     const cont = klassenList;
@@ -367,30 +374,34 @@
 
     const active = cont.querySelector(".listItem.active");
     const next   = cont.querySelector(".listItem.next");
-
     if (!active && !next) return;
 
+    const crect = cont.getBoundingClientRect();
     let top = Infinity, bottom = -Infinity;
+
+    // Positionen relativ zum Container + scrollTop ermitteln
     [active, next].forEach(el => {
       if (!el) return;
-      const t = el.offsetTop;
-      const b = t + el.offsetHeight;
-      if (t < top) top = t;
-      if (b > bottom) bottom = b;
+      const r = el.getBoundingClientRect();
+      const relTop = (r.top - crect.top) + cont.scrollTop;
+      const relBottom = (r.bottom - crect.top) + cont.scrollTop;
+      if (relTop < top) top = relTop;
+      if (relBottom > bottom) bottom = relBottom;
     });
 
     if (top === Infinity || bottom === -Infinity) return;
 
+    const padding = 12; // zusätzlicher Rand oben und unten
     const viewTop = cont.scrollTop;
     const viewBottom = viewTop + cont.clientHeight;
 
-    // Falls oben außerhalb → nach oben scrollen
-    if (top < viewTop) {
-      cont.scrollTo({ top, behavior: "smooth" });
+    // Falls der obere Rand (mit Puffer) außerhalb ist → nach oben scrollen
+    if (top - padding < viewTop) {
+      cont.scrollTo({ top: Math.max(top - padding, 0), behavior: "smooth" });
     }
-    // Falls unten außerhalb → so scrollen, dass das Untere sichtbar ist
-    else if (bottom > viewBottom) {
-      cont.scrollTo({ top: bottom - cont.clientHeight, behavior: "smooth" });
+    // Falls der untere Rand (mit Puffer) außerhalb ist → nach unten scrollen
+    else if (bottom + padding > viewBottom) {
+      cont.scrollTo({ top: bottom + padding - cont.clientHeight, behavior: "smooth" });
     }
   }
 
@@ -411,7 +422,8 @@
     aktualisiereStartNextLabel();
     zeigeInfo();
     aktualisiereKlassenListe();
-    keepActiveAndNextInView();
+    // nach DOM-Update Scroll anpassen
+    requestAnimationFrame(keepActiveAndNextInView);
   };
 
   prevBtn.onclick = async () => {
@@ -423,7 +435,7 @@
     aktualisiereStartNextLabel();
     zeigeInfo();
     aktualisiereKlassenListe();
-    keepActiveAndNextInView();
+    requestAnimationFrame(keepActiveAndNextInView);
   };
 
   // Neustart
@@ -448,7 +460,7 @@
     aktualisiereStartNextLabel();
     zeigeInfo();
     aktualisiereKlassenListe();
-    // Kein Scroll nötig – es gibt keine aktive Markierung
+    // keine aktive Markierung → kein Scroll nötig
   };
 
   // --- Modal öffnen/schließen ---
@@ -466,7 +478,6 @@
   editBtn.onclick = openListEditor;
   cancelEditBtn.onclick = closeListEditor;
   listModal.addEventListener("click", (e) => {
-    // Klick auf den abgedunkelten Hintergrund schließt
     if (e.target === listModal) closeListEditor();
   });
   window.addEventListener("keydown", (e) => {
@@ -499,9 +510,8 @@
     aktualisiereStartNextLabel();
     zeigeInfo();
     aktualisiereKlassenListe();
-    keepActiveAndNextInView();
+    requestAnimationFrame(keepActiveAndNextInView);
 
-    // Hinweis
     saveHint.textContent = "Gespeichert ✔";
     setTimeout(() => saveHint.textContent = "", 1500);
 
