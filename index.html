@@ -158,122 +158,53 @@
     const bellIcon       = document.getElementById('bellIcon');
     const bellText       = document.getElementById('bellText');
 
-    // ===== Audio-Setup =====
-    // Wähle hier den Klangstil: "beep" | "chime" | "pop" | "rise"
-    const SOUND_STYLE = "chime";
-
-    // Global-Lautstärke (lauter als vorher) – bei Bedarf anpassen:
-    const MASTER_VOLUME = 0.16; // 0.04 (sehr leise) ... 0.25 (recht präsent)
-
+    // ===== Audio (fixer „Chime“) =====
     let audioCtx = null;
-    let masterGain = null;
-    let compressor = null;
     let soundEnabled = false; // standardmäßig aus
+    const MASTER_VOLUME = 0.18; // lauter als vorher (0.18 ≈ deutlich, aber nicht aufdringlich)
 
     function initAudio() {
       if (!audioCtx) {
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-
-        // Master Gain
-        masterGain = audioCtx.createGain();
-        masterGain.gain.value = MASTER_VOLUME;
-
-        // Sanfter Kompressor/Limiter gegen Spitzen
-        compressor = audioCtx.createDynamicsCompressor();
-        compressor.threshold.value = -18;  // dB
-        compressor.knee.value      = 20;
-        compressor.ratio.value     = 6;
-        compressor.attack.value    = 0.003;
-        compressor.release.value   = 0.15;
-
-        // Verkabeln: source -> compressor -> masterGain -> destination
-        compressor.connect(masterGain);
-        masterGain.connect(audioCtx.destination);
       }
       if (audioCtx.state === 'suspended') {
         audioCtx.resume();
       }
     }
 
-    // Hilfsfunktion: Hüllkurve anwenden
-    function applyADSR(gainNode, {attack=0.01, decay=0.07, sustain=0.6, release=0.12, duration=0.18}) {
-      const now = audioCtx.currentTime;
-      const end = now + duration;
-
-      gainNode.gain.cancelScheduledValues(now);
-      gainNode.gain.setValueAtTime(0.0001, now);
-      gainNode.gain.linearRampToValueAtTime(1.0, now + attack);
-      gainNode.gain.linearRampToValueAtTime(sustain, now + attack + decay);
-      gainNode.gain.setValueAtTime(sustain, end - release);
-      gainNode.gain.linearRampToValueAtTime(0.0001, end);
-      return { now, end };
-    }
-
-    // Einfache Tonerzeugung
-    function tone({freq=800, type='sine', duration=0.18, attack=0.01, decay=0.06, sustain=0.6, release=0.10, startFreq=null, endFreq=null}) {
+    // Weicher Hüllkurven-Beep
+    function makeBeep({ freq = 880, type = 'sine', duration = 0.14, volume = MASTER_VOLUME }) {
       if (!soundEnabled || !audioCtx) return;
       const osc  = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
 
       osc.type = type;
+      osc.frequency.value = freq;
+
       const now = audioCtx.currentTime;
+      const end = now + duration;
 
-      if (startFreq != null && endFreq != null) {
-        // Glide/Portamento
-        osc.frequency.setValueAtTime(startFreq, now);
-        osc.frequency.exponentialRampToValueAtTime(Math.max(1, endFreq), now + duration);
-      } else {
-        osc.frequency.value = freq;
-      }
+      // sanftes Ein-/Ausblenden
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.linearRampToValueAtTime(volume, now + 0.02);
+      gain.gain.linearRampToValueAtTime(0.0001, end);
 
-      // Soft-Filter gegen schrille Höhen bei Rechteck/Sägezahn
-      const filter = audioCtx.createBiquadFilter();
-      filter.type = 'lowpass';
-      filter.frequency.value = 8000;
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
 
-      // ADSR
-      const env = applyADSR(gain, {attack, decay, sustain, release, duration});
-
-      // Routing: osc -> filter -> compressor -> master
-      osc.connect(filter);
-      filter.connect(gain);
-      gain.connect(compressor);
-
-      osc.start(env.now);
-      osc.stop(env.end);
+      osc.start(now);
+      osc.stop(end);
     }
 
-    // Komplexere Presets
-    function playSound(style = SOUND_STYLE) {
+    // Fester „Chime“ (zweiteilig: Ding → Dong), leicht unterschiedlich im Timbre
+    function playChime() {
       if (!soundEnabled || !audioCtx) return;
-
-      switch (style) {
-        case "beep": {
-          tone({ freq: 800, type: 'sine', duration: 0.18 });
-          break;
-        }
-        case "chime": {
-          // Doppelton „Ding-Dong“
-          tone({ freq: 880, type: 'triangle', duration: 0.12, attack: 0.005, decay: 0.05, sustain: 0.5, release: 0.08 });
-          setTimeout(() => {
-            tone({ freq: 660, type: 'sine', duration: 0.16, attack: 0.005, decay: 0.07, sustain: 0.55, release: 0.11 });
-          }, 95);
-          break;
-        }
-        case "pop": {
-          // kurzer perkussiver Pop (rauscharmer Klick)
-          tone({ freq: 500, type: 'square', duration: 0.07, attack: 0.002, decay: 0.04, sustain: 0.25, release: 0.04 });
-          break;
-        }
-        case "rise": {
-          // schneller aufsteigender Ping (Glide)
-          tone({ startFreq: 520, endFreq: 1040, type: 'sine', duration: 0.22, attack: 0.006, decay: 0.06, sustain: 0.5, release: 0.08 });
-          break;
-        }
-        default: {
-          tone({ freq: 800, type: 'sine', duration: 0.18 });
-        }
-      }
+      // Erster Ton: höher, etwas „gläsern“
+      makeBeep({ freq: 880, type: 'triangle', duration: 0.12 });
+      // Zweiter Ton: tiefer, etwas länger
+      setTimeout(() => {
+        makeBeep({ freq: 660, type: 'sine', duration: 0.16 });
+      }, 95);
     }
 
     function updateBellUI() {
@@ -287,8 +218,8 @@
         initAudio();
         soundEnabled = true;
         updateBellUI();
-        // kurzer Bestätigungston (unabhängig vom Preset)
-        tone({ freq: 520, type: 'triangle', duration: 0.12, attack: 0.004, decay: 0.05, sustain: 0.5, release: 0.06 });
+        // kurzer Bestätigungston
+        makeBeep({ freq: 520, type: 'triangle', duration: 0.12 });
       } else {
         soundEnabled = false;
         updateBellUI();
@@ -316,8 +247,8 @@
       const dt = v.updatedAt ? new Date(v.updatedAt) : null;
       tsEl.textContent = dt ? `Stand: ${dt.toLocaleString('de-AT')}` : '';
 
-      // Ein einziger Ton pro Update (da beide synchron sind)
-      if (changed) playSound();
+      if (changed) playChime();
+
       prev = { aktuell: neuAktuell, vorbereitung: neuVorb };
     });
 
