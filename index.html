@@ -104,9 +104,7 @@
 
     @media (orientation: portrait) {
       .wrap { grid-template-rows: auto auto; }
-      .value {
-        font-size: clamp(42px, 14vw, 160px);
-      }
+      .value { font-size: clamp(42px, 14vw, 160px); }
     }
   </style>
 </head>
@@ -131,6 +129,9 @@
   </div>
 
   <div class="footer" id="ts"></div>
+
+  <!-- Deine MP3 direkt neben index.html -->
+  <audio id="chime" src="chime.mp3" preload="auto"></audio>
 
   <script type="module">
     import { initializeApp }   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -158,54 +159,12 @@
     const bellIcon       = document.getElementById('bellIcon');
     const bellText       = document.getElementById('bellText');
 
-    // ===== Audio (fixer „Chime“) =====
-    let audioCtx = null;
+    // Audio-Element
+    const audioEl = document.getElementById('chime');
+    // Optional: Grundlautstärke der MP3 (0..1) – passe bei Bedarf an:
+    audioEl.volume = 1.0;
+
     let soundEnabled = false; // standardmäßig aus
-    const MASTER_VOLUME = 0.18; // lauter als vorher (0.18 ≈ deutlich, aber nicht aufdringlich)
-
-    function initAudio() {
-      if (!audioCtx) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      }
-      if (audioCtx.state === 'suspended') {
-        audioCtx.resume();
-      }
-    }
-
-    // Weicher Hüllkurven-Beep
-    function makeBeep({ freq = 880, type = 'sine', duration = 0.14, volume = MASTER_VOLUME }) {
-      if (!soundEnabled || !audioCtx) return;
-      const osc  = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-
-      osc.type = type;
-      osc.frequency.value = freq;
-
-      const now = audioCtx.currentTime;
-      const end = now + duration;
-
-      // sanftes Ein-/Ausblenden
-      gain.gain.setValueAtTime(0.0001, now);
-      gain.gain.linearRampToValueAtTime(volume, now + 0.02);
-      gain.gain.linearRampToValueAtTime(0.0001, end);
-
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-
-      osc.start(now);
-      osc.stop(end);
-    }
-
-    // Fester „Chime“ (zweiteilig: Ding → Dong), leicht unterschiedlich im Timbre
-    function playChime() {
-      if (!soundEnabled || !audioCtx) return;
-      // Erster Ton: höher, etwas „gläsern“
-      makeBeep({ freq: 880, type: 'triangle', duration: 0.12 });
-      // Zweiter Ton: tiefer, etwas länger
-      setTimeout(() => {
-        makeBeep({ freq: 660, type: 'sine', duration: 0.16 });
-      }, 95);
-    }
 
     function updateBellUI() {
       soundToggleBtn.setAttribute('aria-pressed', soundEnabled ? 'true' : 'false');
@@ -213,18 +172,26 @@
       bellText.textContent = soundEnabled ? 'Ton an' : 'Ton aus';
     }
 
-    soundToggleBtn.addEventListener('click', () => {
-      if (!soundEnabled) {
-        initAudio();
-        soundEnabled = true;
-        updateBellUI();
-        // kurzer Bestätigungston
-        makeBeep({ freq: 520, type: 'triangle', duration: 0.12 });
-      } else {
-        soundEnabled = false;
-        updateBellUI();
+    soundToggleBtn.addEventListener('click', async () => {
+      // Nutzeraktion: erlaubt Audio-Wiedergabe im Browser
+      try { await audioEl.play(); audioEl.pause(); audioEl.currentTime = 0; } catch {}
+      soundEnabled = !soundEnabled;
+      updateBellUI();
+      // kurzes akustisches Feedback nur bei Aktivierung
+      if (soundEnabled) {
+        try { audioEl.currentTime = 0; await audioEl.play(); } catch(e) { console.warn('Konnte Testton nicht abspielen:', e); }
       }
     });
+
+    async function playChime() {
+      if (!soundEnabled) return;
+      try {
+        audioEl.currentTime = 0;
+        await audioEl.play();
+      } catch (e) {
+        console.warn('Ton konnte nicht abgespielt werden:', e);
+      }
+    }
 
     // ===== Änderungsdetektion & Anzeige =====
     let prev = { aktuell: null, vorbereitung: null };
