@@ -335,10 +335,17 @@
   });
 
   // Logout-Handler
-  logoutBtn.onclick = async () => {
-    try { await signOut(auth); }
-    catch (e) { alert("Abmelden fehlgeschlagen: " + (e?.message ?? e)); }
-  };
+logoutBtn.onclick = async () => {
+  const ok = confirm("Möchtest du dich wirklich abmelden?");
+  if (!ok) return;
+
+  try {
+    await signOut(auth);
+  } catch (e) {
+    alert("Abmelden fehlgeschlagen: " + (e?.message ?? e));
+  }
+};
+
 
   // --- Persistenz: steuerung { liste, pos, initialized, raum1, raum2 } ---
   async function ladeSteuerung() {
@@ -614,3 +621,4 @@
 </script>
 </body>
 </html>
+
