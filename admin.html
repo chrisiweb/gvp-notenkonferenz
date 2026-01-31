@@ -10,77 +10,48 @@
       --bg: #0b1020;
       --fg: #eaf2ff;
       --c-aktuell: #0ea5e9;
-      --c-vorb:    #22c55e;
-      --card-bg:   #151a31;
-      --card-bd:   #2a335f;
+      --c-vorb: #22c55e;
+      --card-bg: #151a31;
+      --card-bd: #2a335f;
     }
     body { font-family: system-ui, Segoe UI, Roboto, Arial, sans-serif; margin:0; padding:20px; background:var(--bg); color:var(--fg); }
     .box { background: var(--card-bg); padding:20px; border-radius:12px; max-width:900px; margin:auto; border:1px solid var(--card-bd); }
     input { width:100%; padding:10px; border-radius:8px; background:#0f1428; color:#eaf2ff; border:1px solid var(--card-bd); }
     button { padding:10px 16px; border:0; border-radius:8px; cursor:pointer; font-size:16px; }
-  .big-button {
-    padding: 20px 32px !important;  /* mehr Innenabstand */
-    font-size: 24px !important;     /* größere Schrift */
-    min-width: 140px;               /* ca. 2 cm */
-    min-height: 110px;              /* ca. 2 cm */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
+    .big-button {
+      padding: 20px 32px !important;
+      font-size: 24px !important;
+      min-width: 140px; min-height: 110px;
+      display: flex; justify-content: center; align-items: center;
+    }
     .btn-primary { background:#3b82f6; color:white; }
-    .btn-red     { background:#ef4444; color:white; }
+    .btn-red { background:#ef4444; color:white; }
     .row-space { display:flex; gap:8px; align-items:center; justify-content:space-between; margin-top:10px; }
-    .row-left { display:flex; gap:8px; align-items:center; }
+    .row-left  { display:flex; gap:8px; align-items:center; }
     .label { font-weight:600; margin-top:12px; display:block; }
     .muted { opacity:.75; font-size:13px; }
     .error { color:#ffb4b4; margin-top:8px; }
     .saving { opacity:.7; font-size:12px; }
 
     /* Karten */
-    .cards { display:grid; grid-template-columns: 1fr 1fr; gap:14px; margin-top:14px; }
+    .cards{ display:grid; grid-template-columns: 1fr 1fr; gap:14px; margin-top:14px; }
     .card { background: linear-gradient(135deg, rgba(255,255,255,.03), rgba(255,255,255,.01)); border:1px solid var(--card-bd); border-radius:14px; padding:16px; box-shadow: 0 10px 30px rgba(0,0,0,.25); }
-    .card.aktuell { border-color: color-mix(in lab, var(--c-aktuell) 60%, transparent); }
-    .card.vorb    { border-color: color-mix(in lab, var(--c-vorb) 60%, transparent); }
+    .card.aktuell{ border-color: color-mix(in lab, var(--c-aktuell) 60%, transparent); }
+    .card.vorb   { border-color: color-mix(in lab, var(--c-vorb)    60%, transparent); }
     .card .title { opacity:.9; font-weight:700; letter-spacing:.06em; text-transform: uppercase; font-size:14px; }
     .card .value { margin-top:.25em; font-weight:800; line-height:1.1; font-size: clamp(28px, 5vw, 64px); word-wrap:break-word; }
-    @media (max-width: 740px) { .cards { grid-template-columns: 1fr; } }
+    /* NEU: Raumzeile in der Vorschau */
+    .card .room  { margin-top:.35em; font-size: clamp(12px, 2.2vw, 18px); opacity:.85; font-weight:600; }
+
+    @media (max-width: 740px){ .cards{ grid-template-columns:1fr; } }
 
     /* --- Interaktive klickbare Klassenliste --- */
-    .listView {
-      margin-top: 10px;
-      border: 1px solid var(--card-bd);
-      border-radius: 8px;
-      background: #0f1428;
-      max-height: 300px;
-      overflow-y: auto;
-      padding: 4px 0;
-      font-size: 15px;
-    }
-    .listItem {
-      padding: 6px 12px;
-      cursor: pointer;
-      border-bottom: 1px solid rgba(255,255,255,0.05);
-      display:flex; gap:8px; align-items:center;
-      scroll-margin: 10px; /* zusätzlicher Rand beim Scrollen zu Elementen */
-    }
-    .listItem:hover {
-      background: rgba(255,255,255,0.05);
-    }
-    .listItem.active {
-      background: rgba(14,165,233,0.20);          /* hellblau transparent */
-      border-left: 4px solid var(--c-aktuell);
-      padding-left: 8px;
-    }
-    .listItem.next {
-      background: rgba(34,197,94,0.16);           /* etwas kräftigeres Grün */
-      border-left: 4px solid var(--c-vorb);
-      padding-left: 8px;
-    }
-    .pill {
-      display:inline-block; font-size:11px; padding:2px 6px; border-radius:999px;
-      background: rgba(255,255,255,0.10);
-      opacity:.9;
-    }
+    .listView { margin-top: 10px; border: 1px solid var(--card-bd); border-radius: 8px; background: #0f1428; max-height: 300px; overflow-y: auto; padding: 4px 0; font-size: 15px; }
+    .listItem { padding: 6px 12px; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.05); display:flex; gap:8px; align-items:center; scroll-margin: 10px; }
+    .listItem:hover { background: rgba(255,255,255,0.05); }
+    .listItem.active{ background: rgba(14,165,233,0.20); border-left: 4px solid var(--c-aktuell); padding-left: 8px; }
+    .listItem.next  { background: rgba(34,197,94,0.16);  border-left: 4px solid var(--c-vorb);    padding-left: 8px; }
+    .pill { display:inline-block; font-size:11px; padding:2px 6px; border-radius:999px; background: rgba(255,255,255,0.10); opacity:.9; }
     .pill.vorb { background: rgba(34,197,94,0.22); }
     .listEmpty { padding:8px 12px; opacity:.7; font-style:italic; }
 
@@ -92,28 +63,26 @@
       border: 1px solid var(--card-bd);
       border-radius: 12px;
       width: min(800px, 92vw);
-      max-height: 90vh;
-      overflow: auto;
-      padding: 16px;
+      max-height: 90vh; overflow: auto; padding: 16px;
       box-shadow: 0 10px 30px rgba(0,0,0,.4);
     }
     .modal-content h3 { margin:0 0 10px; }
     .modal-content textarea {
-      width:100%;
-      height: 50vh;
-      resize: vertical;
-      padding:10px; border-radius:8px; border:1px solid var(--card-bd);
-      background:#0f1428; color:#eaf2ff; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      width:100%; height: 50vh; resize: vertical; padding:10px;
+      border-radius:8px; border:1px solid var(--card-bd);
+      background:#0f1428; color:#eaf2ff;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     }
     .modal-actions { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-top:10px; }
     .btn-ghost { background: transparent; color: var(--fg); border: 1px solid var(--card-bd); }
+    /* NEU: Zweispaltige Eingabe für Räume */
+    .grid-two { display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+    @media (max-width: 620px){ .grid-two { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
-
 <div class="box">
   <h2>GvP Notenkonferenz Liveticker</h2>
-
 
   <!-- Login -->
   <div id="loginBox">
@@ -131,7 +100,6 @@
     </div>
   </div>
 
-
   <!-- Panel -->
   <div id="panel" style="display:none;">
     <!-- Vorschau-Karten -->
@@ -139,10 +107,14 @@
       <div class="card aktuell">
         <div class="title">Aktuell</div>
         <div id="cardAktuell" class="value">–</div>
+        <!-- NEU: Raum in der Vorschau -->
+        <div id="cardAktuellRoom" class="room"></div>
       </div>
       <div class="card vorb">
         <div class="title">In Vorbereitung</div>
         <div id="cardVorb" class="value">–</div>
+        <!-- NEU: Raum in der Vorschau -->
+        <div id="cardVorbRoom" class="room"></div>
       </div>
     </div>
 
@@ -150,16 +122,16 @@
     <div class="row-space" style="margin-top:12px;">
       <div class="row-left">
         <button id="startNextBtn" class="btn-primary big-button" title="Startet mit den ersten zwei Klassen; danach »Nächste Klasse«">
-        Konferenz starten
-      </button>
+          Konferenz starten
+        </button>
       </div>
     </div>
 
     <!-- Interaktive, klickbare Liste mit Markierung -->
     <div id="klassenList" class="listView"></div>
 
-    <!-- Buttons: links Start/Nächste, rechts Zurück + Neustart -->
     <div class="muted">Klicke auf eine Klasse, um direkt zu dieser Klasse zu wechseln.</div>
+
     <div class="row-space">
       <div class="row-left">
         <button id="editBtn" class="btn-ghost" title="Klassenliste bearbeiten und speichern">Klassenliste bearbeiten</button>
@@ -179,10 +151,22 @@
 <div id="listModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-hidden="true">
   <div class="modal-content">
     <h3 id="modalTitle">Klassenliste bearbeiten</h3>
-    <textarea id="editorTextarea" placeholder="z. B.&#10;1A&#10;1B&#10;1C&#10;2A&#10;…"></textarea>
+
+    <!-- NEU: Konferenzräume pflegen -->
+    <div class="grid-two" style="margin-bottom:10px;">
+      <div>
+        <label class="label" for="raum1Input">1. Konferenzraum</label>
+        <input id="raum1Input" type="text" placeholder="z. B. 8AT" />
+      </div>
+      <div>
+        <label class="label" for="raum2Input">2. Konferenzraum</label>
+        <input id="raum2Input" type="text" placeholder="z. B. 8S" />
+      </div>
+    </div>
+
+    <textarea id="editorTextarea" placeholder="z. B.&&#10;1A&&#10;1B&&#10;1C&&#10;2A&&#10;…"></textarea>
     <div class="modal-actions">
       <div class="muted">Tipp: Eine Klasse pro Zeile. Leere Zeilen werden ignoriert.</div>
-      
       <div class="row-left">
         <button id="reverseBtn" class="btn-ghost" style="border-color:#3b82f6;color:#3b82f6;">
           Klassenreihenfolge umdrehen
@@ -211,65 +195,64 @@
   import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
   import { getDatabase, ref, get, set, update } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
-  const app = initializeApp(firebaseConfig);
+  const app  = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const db   = getDatabase(app);
 
   // DOM
-  const loginBox      = document.getElementById("loginBox");
-  const panel         = document.getElementById("panel");
-  const info          = document.getElementById("info");
-  const startNextBtn  = document.getElementById("startNextBtn");
-  const prevBtn       = document.getElementById("prevBtn");
-  const resetBtn      = document.getElementById("resetBtn");
-  const klassenList   = document.getElementById("klassenList");
-  const saveHint      = document.getElementById("saveHint");
-  const cardAktuell   = document.getElementById("cardAktuell");
-  const cardVorb      = document.getElementById("cardVorb");
-  const loginError    = document.getElementById("loginError");
-  const editBtn       = document.getElementById("editBtn");
+  const loginBox = document.getElementById("loginBox");
+  const panel    = document.getElementById("panel");
+  const info     = document.getElementById("info");
+  const startNextBtn = document.getElementById("startNextBtn");
+  const prevBtn  = document.getElementById("prevBtn");
+  const resetBtn = document.getElementById("resetBtn");
+  const klassenList = document.getElementById("klassenList");
+  const saveHint = document.getElementById("saveHint");
+  const cardAktuell = document.getElementById("cardAktuell");
+  const cardVorb    = document.getElementById("cardVorb");
+  const cardAktuellRoom = document.getElementById("cardAktuellRoom"); // NEU
+  const cardVorbRoom    = document.getElementById("cardVorbRoom");    // NEU
+  const loginError = document.getElementById("loginError");
+  const editBtn    = document.getElementById("editBtn");
 
   // Modal
-  const listModal       = document.getElementById("listModal");
-  const editorTextarea  = document.getElementById("editorTextarea");
-  const saveEditBtn     = document.getElementById("saveEditBtn");
-  const cancelEditBtn   = document.getElementById("cancelEditBtn");
+  const listModal = document.getElementById("listModal");
+  const editorTextarea = document.getElementById("editorTextarea");
+  const saveEditBtn    = document.getElementById("saveEditBtn");
+  const cancelEditBtn  = document.getElementById("cancelEditBtn");
+  // NEU: Raum-Inputs
+  const raum1Input = document.getElementById("raum1Input");
+  const raum2Input = document.getElementById("raum2Input");
 
   // Zustand
-  let klassen = [];     // Array der Klassen
-  let pos = 0;          // Index der „Aktuell“-Klasse
+  let klassen = [];  // Array der Klassen
+  let pos = 0;       // Index der „Aktuell“-Klasse
   let initialized = false; // erst nach „Konferenz starten“ true
+  // NEU: Räume (Standardwerte)
+  let raum1 = "8AT";
+  let raum2 = "8S";
 
-  // -----------------------
-  // Alias-Mapping festlegen
-  // -----------------------
+  // --- Alias-Mapping ---
   const USERNAME_ALIASES = {
-    // username -> email
     "gvp": "admin@gvp-notenkonferenz.local",
-    // falls du weitere Kurzlogins haben willst:
-    // "leitung": "leitung@gvp-notenkonferenz.local",
   };
-
   function mapToEmail(input) {
-    const raw = (input || "").trim();
+    const raw = (input ?? "").trim();
     const key = raw.toLowerCase();
     if (USERNAME_ALIASES[key]) return USERNAME_ALIASES[key];
-    // wenn es wie eine E‑Mail aussieht, einfach durchlassen
-    return raw;
+    return raw; // schon E-Mail -> durchlassen
   }
 
   // --- Login ---
   document.getElementById("loginBtn").onclick = async () => {
-    const emailOrUser = (document.getElementById("email").value || "").trim();
-    const pass        = (document.getElementById("passwort").value || "").trim();
+    const emailOrUser = (document.getElementById("email").value ?? "").trim();
+    const pass        = (document.getElementById("passwort").value ?? "").trim();
     const loginError  = document.getElementById("loginError");
     loginError.textContent = "";
-
     try {
       const email = mapToEmail(emailOrUser);
       await signInWithEmailAndPassword(auth, email, pass);
     } catch (err) {
-      // freundlichere Fehlermeldung
       const msg = (err?.code === "auth/invalid-login-credentials" || err?.code === "auth/wrong-password")
         ? "Benutzername/E‑Mail oder Passwort falsch."
         : (err?.message ?? String(err));
@@ -277,36 +260,40 @@
     }
   };
 
-
   onAuthStateChanged(auth, async (user) => {
     const signedIn = !!user;
     loginBox.style.display = signedIn ? "none" : "";
     panel.style.display    = signedIn ? "" : "none";
     if (!signedIn) return;
-    
+
     // Zustand laden
     await ladeSteuerung();
-    
+
     // UI initial
     editorTextarea.value = klassen.join("\n");
+    raum1Input.value = raum1; // NEU
+    raum2Input.value = raum2; // NEU
+
     aktualisiereKarten();
     aktualisiereStartNextLabel();
     zeigeInfo();
     aktualisiereKlassenListe();
-    // nach Render ein zweites Mal, falls Layout erst dann final ist
     requestAnimationFrame(keepActiveAndNextInView);
 
     // bereits laufend → Anzeige synchronisieren
     if (initialized) await schreibeAnzeige();
   });
 
-  // --- Persistenz: steuerung { liste, pos, initialized } ---
+  // --- Persistenz: steuerung { liste, pos, initialized, raum1, raum2 } ---
   async function ladeSteuerung() {
     const snap = await get(ref(db, "steuerung"));
     const v = snap.exists() ? snap.val() : {};
-    klassen     = Array.isArray(v.liste) ? v.liste : [];
-    pos         = Number.isInteger(v.pos) ? v.pos : 0;
+    klassen = Array.isArray(v.liste) ? v.liste : [];
+    pos = Number.isInteger(v.pos) ? v.pos : 0;
     initialized = typeof v.initialized === "boolean" ? v.initialized : false;
+    // NEU: Räume mit Defaults
+    raum1 = (typeof v.raum1 === "string" && v.raum1.trim()) ? v.raum1.trim() : "8AT";
+    raum2 = (typeof v.raum2 === "string" && v.raum2.trim()) ? v.raum2.trim() : "8S";
 
     // Pos begrenzen
     if (pos < 0) pos = 0;
@@ -314,25 +301,32 @@
   }
 
   async function speichereSteuerung() {
-    await set(ref(db, "steuerung"), { liste: klassen, pos, initialized });
+    // NEU: raum1/raum2 mitspeichern
+    await set(ref(db, "steuerung"), { liste: klassen, pos, initialized, raum1, raum2 });
   }
 
+  // Schreibt die öffentliche Anzeige inkl. Räume
   async function schreibeAnzeige() {
-    const aktuell = klassen[pos] || "";
-    const vorb    = klassen[pos + 1] || "";
+    const aktuell = klassen[pos] ?? "";
+    const vorb    = klassen[pos + 1] ?? "";
+    // NEU: Räume abwechselnd nach Index
+    const aktuellRaum     = (typeof aktuell === "string" && aktuell) ? ((pos % 2 === 0) ? raum1 : raum2) : "";
+    const vorbereitungRaum= (typeof vorb === "string" && vorb) ? (((pos + 1) % 2 === 0) ? raum1 : raum2) : "";
     const now = Date.now();
     await update(ref(db, "anzeige"), {
       aktuell,
       vorbereitung: vorb,
-      aktualisiertAm: now,   // deutsch
-      updatedAt: now         // englisch – kompatibel zum index.html
+      aktuellRaum,              // NEU
+      vorbereitungRaum,         // NEU
+      aktualisiertAm: now,      // deutsch
+      updatedAt: now            // englisch – kompatibel zum index.html
     });
   }
 
   // --- UI-Helper ---
   function zeigeInfo() {
-    const a = (initialized ? (klassen[pos] || "—") : "—");
-    const v = (initialized ? (klassen[pos + 1] || "—") : "—");
+    const a = (initialized ? (klassen[pos] ?? "—") : "—");
+    const v = (initialized ? (klassen[pos + 1] ?? "—") : "—");
     info.innerHTML = `
       <div>Aktuell: <b>${a}</b></div>
       <div>In Vorbereitung: <b>${v}</b></div>
@@ -341,13 +335,21 @@
   }
 
   function aktualisiereKarten() {
-    cardAktuell.textContent = initialized ? (klassen[pos] || "—") : "—";
-    cardVorb.textContent    = initialized ? (klassen[pos + 1] || "—") : "—";
+    const a = initialized ? (klassen[pos] ?? "—") : "—";
+    const v = initialized ? (klassen[pos + 1] ?? "—") : "—";
+    cardAktuell.textContent = a;
+    cardVorb.textContent    = v;
+
+    // NEU: Räume in der Admin-Vorschau
+    const aRoom = (initialized && a && typeof a === "string") ? ((pos % 2 === 0) ? raum1 : raum2) : "";
+    const vRoom = (initialized && v && typeof v === "string") ? (((pos + 1) % 2 === 0) ? raum1 : raum2) : "";
+    cardAktuellRoom.textContent = aRoom ? `(Raum: ${aRoom})` : "";
+    cardVorbRoom.textContent    = vRoom ? `(Raum: ${vRoom})` : "";
   }
 
-function aktualisiereStartNextLabel() {
+  function aktualisiereStartNextLabel() {
     startNextBtn.textContent = initialized ? "Nächste Klasse" : "Konferenz starten";
-}
+  }
 
   // --- Klickbare Liste rendern ---
   function aktualisiereKlassenListe() {
@@ -359,7 +361,6 @@ function aktualisiereStartNextLabel() {
       klassenList.appendChild(empty);
       return;
     }
-
     klassen.forEach((k, i) => {
       const div = document.createElement("div");
       div.className = "listItem";
@@ -386,14 +387,11 @@ function aktualisiereStartNextLabel() {
       div.appendChild(label);
       div.appendChild(pill);
 
-      // Klicke auf eine Klasse, um direkt zu dieser Klasse zu wechseln.
+      // Direkt zu Klasse springen
       div.onclick = async () => {
-        // bereits aktiv -> nichts tun
         if (i === pos) return;
-
         const ok = confirm("Möchtest du die aktuelle Klasse wirklich ändern?");
         if (!ok) return;
-
         pos = i;
         initialized = true;
         await speichereSteuerung();
@@ -404,25 +402,20 @@ function aktualisiereStartNextLabel() {
         aktualisiereKlassenListe();
         keepActiveAndNextInView();
       };
-
       klassenList.appendChild(div);
     });
   }
 
-  // Beide (Aktuell & Vorbereitung) im Sichtbereich halten – mit Puffer
+  // Beide (Aktuell & Vorbereitung) im Sichtbereich halten
   function keepActiveAndNextInView() {
     if (!initialized) return;
-    const cont = klassenList;
-    if (!cont) return;
-
+    const cont = klassenList; if (!cont) return;
     const active = cont.querySelector(".listItem.active");
     const next   = cont.querySelector(".listItem.next");
     if (!active && !next) return;
 
     const crect = cont.getBoundingClientRect();
     let top = Infinity, bottom = -Infinity;
-
-    // Positionen relativ zum Container + scrollTop ermitteln
     [active, next].forEach(el => {
       if (!el) return;
       const r = el.getBoundingClientRect();
@@ -431,19 +424,15 @@ function aktualisiereStartNextLabel() {
       if (relTop < top) top = relTop;
       if (relBottom > bottom) bottom = relBottom;
     });
-
     if (top === Infinity || bottom === -Infinity) return;
 
-    const padding = 12; // zusätzlicher Rand oben und unten
+    const padding = 12;
     const viewTop = cont.scrollTop;
     const viewBottom = viewTop + cont.clientHeight;
 
-    // Falls der obere Rand (mit Puffer) außerhalb ist → nach oben scrollen
     if (top - padding < viewTop) {
       cont.scrollTo({ top: Math.max(top - padding, 0), behavior: "smooth" });
-    }
-    // Falls der untere Rand (mit Puffer) außerhalb ist → nach unten scrollen
-    else if (bottom + padding > viewBottom) {
+    } else if (bottom + padding > viewBottom) {
       cont.scrollTo({ top: bottom + padding - cont.clientHeight, behavior: "smooth" });
     }
   }
@@ -465,7 +454,6 @@ function aktualisiereStartNextLabel() {
     aktualisiereStartNextLabel();
     zeigeInfo();
     aktualisiereKlassenListe();
-    // nach DOM-Update Scroll anpassen
     requestAnimationFrame(keepActiveAndNextInView);
   };
 
@@ -483,32 +471,30 @@ function aktualisiereStartNextLabel() {
 
   // Neustart
   resetBtn.onclick = async () => {
-    if (!confirm("Soll die Notenkonferenz wirklich neu gestartet werden?")) {
-      return;
-    }
+    if (!confirm("Soll die Notenkonferenz wirklich neu gestartet werden?")) return;
     initialized = false;
     pos = 0;
-
     await speichereSteuerung();
-
     const now = Date.now();
     await update(ref(db, "anzeige"), {
       aktuell: "",
       vorbereitung: "",
+      aktuellRaum: "",          // NEU: leeren
+      vorbereitungRaum: "",     // NEU: leeren
       aktualisiertAm: now,
       updatedAt: now
     });
-
     aktualisiereKarten();
     aktualisiereStartNextLabel();
     zeigeInfo();
     aktualisiereKlassenListe();
-    // keine aktive Markierung → kein Scroll nötig
   };
 
   // --- Modal öffnen/schließen ---
   function openListEditor() {
     editorTextarea.value = klassen.join("\n");
+    raum1Input.value = raum1; // NEU
+    raum2Input.value = raum2; // NEU
     listModal.classList.add("open");
     listModal.setAttribute("aria-hidden", "false");
     setTimeout(() => editorTextarea.focus(), 50);
@@ -517,44 +503,28 @@ function aktualisiereStartNextLabel() {
     listModal.classList.remove("open");
     listModal.setAttribute("aria-hidden", "true");
   }
-
   editBtn.onclick = openListEditor;
   cancelEditBtn.onclick = closeListEditor;
-  listModal.addEventListener("click", (e) => {
-    if (e.target === listModal) closeListEditor();
-  });
-  window.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && listModal.classList.contains("open")) closeListEditor();
-  });
+  listModal.addEventListener("click", (e) => { if (e.target === listModal) closeListEditor(); });
+  window.addEventListener("keydown", (e) => { if (e.key === "Escape" && listModal.classList.contains("open")) closeListEditor(); });
 
-  // --- Klassenreihenfolge umdrehen ---
+  // Klassenreihenfolge umdrehen
   document.getElementById("reverseBtn").onclick = () => {
-    const lines = editorTextarea.value
-      .split("\n")
-      .map(s => s.trim())
-      .filter(Boolean);
-  
-    if (lines.length === 0) {
-      alert("Keine Klassen vorhanden.");
-      return;
-    }
-  
+    const lines = editorTextarea.value.split("\n").map(s => s.trim()).filter(Boolean);
+    if (lines.length === 0) { alert("Keine Klassen vorhanden."); return; }
     const ok = confirm("Soll die Reihenfolge der Klassen wirklich umgedreht werden?");
     if (!ok) return;
-  
-    const reversed = lines.reverse();
-    editorTextarea.value = reversed.join("\n");
+    editorTextarea.value = lines.reverse().join("\n");
   };
-  
+
   // Speichern aus dem Modal
   saveEditBtn.onclick = async () => {
-    const lines = editorTextarea.value
-      .split("\n")
-      .map(s => s.trim())
-      .filter(Boolean);
-
-    // Update Liste
+    const lines = editorTextarea.value.split("\n").map(s => s.trim()).filter(Boolean);
     klassen = lines;
+
+    // NEU: Räume aus den Eingaben übernehmen
+    raum1 = (raum1Input.value ?? "").trim() || "8AT";
+    raum2 = (raum2Input.value ?? "").trim() || "8S";
 
     // Position & Init anpassen
     if (klassen.length === 0) {
@@ -576,28 +546,15 @@ function aktualisiereStartNextLabel() {
 
     saveHint.textContent = "Gespeichert ✔";
     setTimeout(() => saveHint.textContent = "", 1500);
-
     closeListEditor();
   };
 
-
-// --- ENTER-Taste löst den "Nächste Klasse" / "Konferenz starten" Button aus ---
-window.addEventListener("keydown", (e) => {
-  // Nur ENTER ohne Modifikatoren
-  if (e.key !== "Enter" || e.shiftKey || e.ctrlKey || e.altKey) return;
-
-  // Login ist sichtbar? Dann NICHT auslösen
-  if (getComputedStyle(loginBox).display !== "none") return;
-
-  // Button auslösen
-  startNextBtn.click();
-});
-
-
+  // ENTER triggert Start/Nächste
+  window.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter" || e.shiftKey || e.ctrlKey || e.altKey) return;
+    if (getComputedStyle(loginBox).display !== "none") return;
+    startNextBtn.click();
+  });
 </script>
-
 </body>
 </html>
-
-
-
