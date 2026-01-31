@@ -9,10 +9,9 @@
     :root {
       --bg: #0b1020;
       --fg: #eaf2ff;
-      --color-aktuell: #0ea5e9;   /* hellblau */
-      --color-vorb:    #22c55e;   /* grün */
+      --color-aktuell: #0ea5e9; /* hellblau */
+      --color-vorb: #22c55e;    /* grün */
     }
-
     html, body {
       height: 100%;
       margin: 0;
@@ -20,7 +19,6 @@
       color: var(--fg);
       font-family: system-ui, Segoe UI, Roboto, Arial, sans-serif;
     }
-
     .wrap {
       display: grid;
       grid-template-rows: 1fr 1fr;
@@ -29,7 +27,6 @@
       height: 100%;
       box-sizing: border-box;
     }
-
     .card {
       border-radius: 24px;
       display: flex;
@@ -38,17 +35,14 @@
       padding: 24px;
       box-shadow: 0 10px 30px rgba(0,0,0,.35);
     }
-
     .aktuell {
       background: linear-gradient(135deg, color-mix(in lab, var(--color-aktuell) 25%, transparent), rgba(255,255,255,.04));
       border: 2px solid color-mix(in lab, var(--color-aktuell) 60%, transparent);
     }
-
     .vorb {
       background: linear-gradient(135deg, color-mix(in lab, var(--color-vorb) 25%, transparent), rgba(255,255,255,.04));
       border: 2px solid color-mix(in lab, var(--color-vorb) 60%, transparent);
     }
-
     .label {
       opacity: .85;
       font-weight: 600;
@@ -56,8 +50,7 @@
       text-transform: uppercase;
       font-size: clamp(14px, 2.2vw, 20px);
     }
-
-    /* Verkleinerte Darstellung der Klassen */
+    /* Groß für Klassenanzeige */
     .value {
       margin-top: .25em;
       font-weight: 900;
@@ -65,6 +58,13 @@
       font-size: clamp(48px, 12vw, 180px);
       word-wrap: break-word;
       letter-spacing: 0.01em;
+    }
+    /* NEU: kleine, gut lesbare Raumzeile unterhalb */
+    .room {
+      margin-top: .35em;
+      font-size: clamp(12px, 2.2vw, 20px);
+      opacity: .85;
+      font-weight: 600;
     }
 
     /* Zeitstempel unten rechts */
@@ -75,7 +75,6 @@
       opacity: .5;
       font-size: 12px;
     }
-
     /* Ton-Schalter: fixiert oben rechts */
     .sound-toggle {
       position: fixed;
@@ -101,7 +100,6 @@
       background: rgba(34,197,94,.20);
       border-color: rgba(34,197,94,.55);
     }
-
     @media (orientation: portrait) {
       .wrap { grid-template-rows: auto auto; }
       .value { font-size: clamp(42px, 14vw, 160px); }
@@ -121,20 +119,23 @@
     <section class="card aktuell">
       <div class="label">Laufende Klassenkonferenz</div>
       <div id="aktuell" class="value">–</div>
+      <!-- NEU: Raumzeile -->
+      <div id="aktuellRoom" class="room"></div>
     </section>
     <section class="card vorb">
       <div class="label">In Vorbereitung</div>
       <div id="vorb" class="value">–</div>
+      <!-- NEU: Raumzeile -->
+      <div id="vorbRoom" class="room"></div>
     </section>
   </div>
-
   <div class="footer" id="ts"></div>
 
   <!-- Deine MP3 direkt neben index.html -->
   <audio id="chime" src="chime.mp3" preload="auto"></audio>
 
   <script type="module">
-    import { initializeApp }   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
     const firebaseConfig = {
@@ -151,19 +152,19 @@
     const app = initializeApp(firebaseConfig);
     const db  = getDatabase(app);
 
-    const aktuellEl = document.getElementById('aktuell');
-    const vorbEl    = document.getElementById('vorb');
-    const tsEl      = document.getElementById('ts');
+    const aktuellEl     = document.getElementById('aktuell');
+    const vorbEl        = document.getElementById('vorb');
+    const aktuellRoomEl = document.getElementById('aktuellRoom'); // NEU
+    const vorbRoomEl    = document.getElementById('vorbRoom');    // NEU
+    const tsEl          = document.getElementById('ts');
 
     const soundToggleBtn = document.getElementById('soundToggle');
-    const bellIcon       = document.getElementById('bellIcon');
-    const bellText       = document.getElementById('bellText');
+    const bellIcon = document.getElementById('bellIcon');
+    const bellText = document.getElementById('bellText');
 
     // Audio-Element
     const audioEl = document.getElementById('chime');
-    // Optional: Grundlautstärke der MP3 (0..1) – passe bei Bedarf an:
     audioEl.volume = 1.0;
-
     let soundEnabled = false; // standardmäßig aus
 
     function updateBellUI() {
@@ -171,35 +172,26 @@
       bellIcon.textContent = soundEnabled ? '🔔' : '🔕';
       bellText.textContent = soundEnabled ? 'Ton an' : 'Ton aus';
     }
-
     soundToggleBtn.addEventListener('click', async () => {
-      // Nutzeraktion: erlaubt Audio-Wiedergabe im Browser
       try { await audioEl.play(); audioEl.pause(); audioEl.currentTime = 0; } catch {}
       soundEnabled = !soundEnabled;
       updateBellUI();
-      // kurzes akustisches Feedback nur bei Aktivierung
       if (soundEnabled) {
         try { audioEl.currentTime = 0; await audioEl.play(); } catch(e) { console.warn('Konnte Testton nicht abspielen:', e); }
       }
     });
-
     async function playChime() {
       if (!soundEnabled) return;
-      try {
-        audioEl.currentTime = 0;
-        await audioEl.play();
-      } catch (e) {
-        console.warn('Ton konnte nicht abgespielt werden:', e);
-      }
+      try { audioEl.currentTime = 0; await audioEl.play(); }
+      catch (e) { console.warn('Ton konnte nicht abgespielt werden:', e); }
     }
 
     // ===== Änderungsdetektion & Anzeige =====
     let prev = { aktuell: null, vorbereitung: null };
-
     onValue(ref(db, 'anzeige'), (snap) => {
-      const v = snap.val() || {};
-      const neuAktuell = v.aktuell || '–';
-      const neuVorb    = v.vorbereitung || '–';
+      const v = snap.val() ?? {};
+      const neuAktuell = v.aktuell ?? '–';
+      const neuVorb    = v.vorbereitung ?? '–';
 
       const changed =
         (prev.aktuell !== null && prev.aktuell !== neuAktuell) ||
@@ -208,14 +200,20 @@
       aktuellEl.textContent = neuAktuell;
       vorbEl.textContent    = neuVorb;
 
-      document.documentElement.style.setProperty('--color-aktuell', v.colorAktuell || '#0ea5e9');
-      document.documentElement.style.setProperty('--color-vorb',    v.colorVorb    || '#22c55e');
+      // NEU: Räume (falls vorhanden)
+      const aRoom = v.aktuellRaum ?? '';
+      const nRoom = v.vorbereitungRaum ?? '';
+      aktuellRoomEl.textContent = aRoom ? `(Raum: ${aRoom})` : '';
+      vorbRoomEl.textContent    = nRoom ? `(Raum: ${nRoom})` : '';
+
+      // Farben wie gehabt
+      document.documentElement.style.setProperty('--color-aktuell', v.colorAktuell ?? '#0ea5e9');
+      document.documentElement.style.setProperty('--color-vorb',    v.colorVorb    ?? '#22c55e');
 
       const dt = v.updatedAt ? new Date(v.updatedAt) : null;
       tsEl.textContent = dt ? `Stand: ${dt.toLocaleString('de-AT')}` : '';
 
       if (changed) playChime();
-
       prev = { aktuell: neuAktuell, vorbereitung: neuVorb };
     });
 
