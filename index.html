@@ -10,7 +10,7 @@
       --bg: #0b1020;
       --fg: #eaf2ff;
       --color-aktuell: #0ea5e9; /* hellblau */
-      --color-vorb: #22c55e;    /* grün */
+      --color-vorb:    #22c55e; /* grün   */
     }
     html, body {
       height: 100%;
@@ -50,7 +50,7 @@
       text-transform: uppercase;
       font-size: clamp(14px, 2.2vw, 20px);
     }
-    /* Groß für Klassenanzeige */
+    /* große Klassenanzeige */
     .value {
       margin-top: .25em;
       font-weight: 900;
@@ -59,10 +59,10 @@
       word-wrap: break-word;
       letter-spacing: 0.01em;
     }
-    /* NEU: kleine, gut lesbare Raumzeile unterhalb */
+    /* NEU: Raumzeile (größer) */
     .room {
       margin-top: .35em;
-      font-size: clamp(18px, 3.8vw, 28px);
+      font-size: clamp(14px, 3vw, 24px);
       opacity: .85;
       font-weight: 600;
     }
@@ -122,6 +122,7 @@
       <!-- NEU: Raumzeile -->
       <div id="aktuellRoom" class="room"></div>
     </section>
+
     <section class="card vorb">
       <div class="label">In Vorbereitung</div>
       <div id="vorb" class="value">–</div>
@@ -129,9 +130,10 @@
       <div id="vorbRoom" class="room"></div>
     </section>
   </div>
+
   <div class="footer" id="ts"></div>
 
-  <!-- Deine MP3 direkt neben index.html -->
+  <!-- MP3 direkt neben index.html ablegen -->
   <audio id="chime" src="chime.mp3" preload="auto"></audio>
 
   <script type="module">
@@ -154,8 +156,8 @@
 
     const aktuellEl     = document.getElementById('aktuell');
     const vorbEl        = document.getElementById('vorb');
-    const aktuellRoomEl = document.getElementById('aktuellRoom'); // NEU
-    const vorbRoomEl    = document.getElementById('vorbRoom');    // NEU
+    const aktuellRoomEl = document.getElementById('aktuellRoom');
+    const vorbRoomEl    = document.getElementById('vorbRoom');
     const tsEl          = document.getElementById('ts');
 
     const soundToggleBtn = document.getElementById('soundToggle');
@@ -169,29 +171,50 @@
 
     function updateBellUI() {
       soundToggleBtn.setAttribute('aria-pressed', soundEnabled ? 'true' : 'false');
-      bellIcon.textContent = soundEnabled ? '🔔' : '🔕';
+      bellIcon.textContent = soundEnabled ? '��' : '🔕';
       bellText.textContent = soundEnabled ? 'Ton an' : 'Ton aus';
     }
+
     soundToggleBtn.addEventListener('click', async () => {
+      // Nutzeraktion: erlaubt Audio-Wiedergabe im Browser
       try { await audioEl.play(); audioEl.pause(); audioEl.currentTime = 0; } catch {}
       soundEnabled = !soundEnabled;
       updateBellUI();
+      // kurzes akustisches Feedback nur bei Aktivierung
       if (soundEnabled) {
-        try { audioEl.currentTime = 0; await audioEl.play(); } catch(e) { console.warn('Konnte Testton nicht abspielen:', e); }
+        try { audioEl.currentTime = 0; await audioEl.play(); }
+        catch(e) { console.warn('Konnte Testton nicht abspielen:', e); }
       }
     });
+
     async function playChime() {
       if (!soundEnabled) return;
-      try { audioEl.currentTime = 0; await audioEl.play(); }
-      catch (e) { console.warn('Ton konnte nicht abgespielt werden:', e); }
+      try {
+        audioEl.currentTime = 0;
+        await audioEl.play();
+      } catch (e) {
+        console.warn('Ton konnte nicht abgespielt werden:', e);
+      }
     }
 
-    // ===== Änderungsdetektion & Anzeige =====
+    // ===== Anzeige robust aus DB lesen =====
+    const textOrDash = (x) => {
+      const s = (x ?? '').toString().trim();
+      return s.length ? s : '–';
+    };
+    const roomOrEmpty = (x) => {
+      const s = (x ?? '').toString().trim();
+      return s.length ? `(Raum: ${s})` : '';
+    };
+
     let prev = { aktuell: null, vorbereitung: null };
+
     onValue(ref(db, 'anzeige'), (snap) => {
       const v = snap.val() ?? {};
-      const neuAktuell = v.aktuell ?? '–';
-      const neuVorb    = v.vorbereitung ?? '–';
+
+      // Inhalte (robust gegen "", null, undefined)
+      const neuAktuell = textOrDash(v.aktuell);
+      const neuVorb    = textOrDash(v.vorbereitung);
 
       const changed =
         (prev.aktuell !== null && prev.aktuell !== neuAktuell) ||
@@ -200,16 +223,15 @@
       aktuellEl.textContent = neuAktuell;
       vorbEl.textContent    = neuVorb;
 
-      // NEU: Räume (falls vorhanden)
-      const aRoom = v.aktuellRaum ?? '';
-      const nRoom = v.vorbereitungRaum ?? '';
-      aktuellRoomEl.textContent = aRoom ? `(Raum: ${aRoom})` : '';
-      vorbRoomEl.textContent    = nRoom ? `(Raum: ${nRoom})` : '';
+      // Räume
+      aktuellRoomEl.textContent = roomOrEmpty(v.aktuellRaum);
+      vorbRoomEl.textContent    = roomOrEmpty(v.vorbereitungRaum);
 
-      // Farben wie gehabt
+      // Farben (optional von Admin setzbar)
       document.documentElement.style.setProperty('--color-aktuell', v.colorAktuell ?? '#0ea5e9');
       document.documentElement.style.setProperty('--color-vorb',    v.colorVorb    ?? '#22c55e');
 
+      // Zeitstempel
       const dt = v.updatedAt ? new Date(v.updatedAt) : null;
       tsEl.textContent = dt ? `Stand: ${dt.toLocaleString('de-AT')}` : '';
 
@@ -217,12 +239,9 @@
       prev = { aktuell: neuAktuell, vorbereitung: neuVorb };
     });
 
-    // initiale UI (inaktiv)
+    // initiale UI
     updateBellUI();
   </script>
 </body>
 </html>
-
-
-
-
+``
