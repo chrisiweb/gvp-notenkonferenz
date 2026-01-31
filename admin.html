@@ -104,7 +104,7 @@
     /* Optional: kompaktere Optik insgesamt im Modal */
     .modal-content input, .modal-content textarea { border-radius: 6px; }
 
-    /* Logout-Button: fixed unten rechts */
+    /* Logout-Button: fixed unten rechts (Desktop/Tablet) */
     .logout-btn {
       position: fixed;
       right: 16px;
@@ -122,8 +122,56 @@
     }
     .logout-btn:hover { background: #111827; border-color: #475569; }
     .logout-btn:active { transform: translateY(1px); }
-    @media (max-width: 740px) {
-      .logout-btn { right: 12px; bottom: 12px; padding: 9px 12px; font-size: 13px; }
+
+    /* --- Responsive Verbesserungen --- */
+    @media (max-width: 860px) {
+      .box { padding: 14px; border-radius: 10px; }
+      .row-space { gap: 10px; align-items: stretch; }
+      .big-button {
+        min-width: 0;
+        min-height: 72px;
+        font-size: 20px !important;
+        padding: 16px 20px !important;
+      }
+      .cards { gap: 10px; }
+      .card { padding: 12px; }
+      .card .value { font-size: clamp(24px, 6vw, 48px); }
+      .card .room  { font-size: clamp(13px, 2.8vw, 18px); }
+    }
+
+    @media (max-width: 640px) {
+      /* Spalten untereinander */
+      .row-space { flex-direction: column; align-items: stretch; }
+      .box { padding: 12px; }
+      .cards { gap: 8px; }
+
+      /* Buttons volle Breite */
+      .row-left { width: 100%; gap: 8px; }
+      .row-left > button {
+        flex: 1 1 auto;
+        width: 100%;
+        display: inline-flex;
+        justify-content: center;
+      }
+      #editBtn, #prevBtn, #resetBtn { padding: 12px 14px; font-size: 16px; }
+      .big-button { width: 100%; min-height: 64px; font-size: 18px !important; padding: 14px 16px !important; }
+
+      #info { font-size: 12.5px; }
+
+      /* Logout-Button innerhalb der Box */
+      .logout-btn {
+        position: static;
+        display: inline-flex; /* sichtbar, wenn eingeloggt */
+        margin-top: 10px;
+        width: 100%;
+        justify-content: center;
+      }
+    }
+
+    @media (max-width: 380px) {
+      .card .value { font-size: clamp(22px, 7vw, 40px); }
+      .card .room  { font-size: clamp(12px, 3.2vw, 16px); }
+      .btn-primary, .btn-red, .btn-ghost { font-size: 15px; }
     }
   </style>
 </head>
@@ -141,6 +189,10 @@
       <button id="loginBtn" class="btn-primary">Anmelden</button>
     </div>
     <div id="loginError" class="error"></div>
+    <div class="muted" style="margin-top:6px;">
+      Für GitHub Pages muss die Domain <code>chrisiweb.github.io</code> in Firebase unter
+      <i>Authentifizierung → Einstellungen → Autorisierte Domains</i> freigegeben sein.
+    </div>
   </div>
 
   <!-- Panel -->
@@ -175,7 +227,7 @@
 
     <div class="row-space">
       <div class="row-left">
-        <button id="editBtn" class="btn-ghost" title="Klassen/Räume bearbeiten und speichern">Klassen/Räume bearbeiten</button>
+        <button id="editBtn" class="btn-ghost" title="Klassenliste bearbeiten und speichern">Klassen/Räume bearbeiten</button>
         <span id="saveHint" class="saving" aria-live="polite"></span>
       </div>
       <div class="row-left">
@@ -191,7 +243,7 @@
 <!-- Modal: Klassenliste bearbeiten -->
 <div id="listModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-hidden="true">
   <div class="modal-content">
-    <h3 id="modalTitle">Klassen/Räume bearbeiten</h3>
+    <h3 id="modalTitle">Klassenliste bearbeiten</h3>
 
     <!-- Räume (kompakt) -->
     <div class="grid-two" style="margin-bottom:10px;">
@@ -220,7 +272,7 @@
   </div>
 </div>
 
-<!-- Logout (unten rechts, nur sichtbar wenn eingeloggt) -->
+<!-- Logout (unten rechts auf Desktop/Tablet; mobil in der Box) -->
 <button id="logoutBtn" class="logout-btn" title="Abmelden">Abmelden</button>
 
 <script type="module">
@@ -279,9 +331,7 @@
   let raum2 = "8S";
 
   // --- Alias-Mapping ---
-  const USERNAME_ALIASES = {
-    "gvp": "admin@gvp-notenkonferenz.local",
-  };
+  const USERNAME_ALIASES = { "gvp": "admin@gvp-notenkonferenz.local" };
   function mapToEmail(input) {
     const raw = (input ?? "").trim();
     const key = raw.toLowerCase();
@@ -309,7 +359,7 @@
     const signedIn = !!user;
     loginBox.style.display = signedIn ? "none" : "";
     panel.style.display    = signedIn ? "" : "none";
-    logoutBtn.style.display = signedIn ? "inline-flex" : "none"; // Logout-Button sichtbar, wenn eingeloggt
+    logoutBtn.style.display = signedIn ? "inline-flex" : "none"; // Logout sichtbar, wenn eingeloggt
     if (!signedIn) return;
 
     // Zustand laden
@@ -330,18 +380,13 @@
     if (initialized) await schreibeAnzeige();
   });
 
-  // Logout-Handler
-logoutBtn.onclick = async () => {
-  const ok = confirm("Möchtest du dich wirklich abmelden?");
-  if (!ok) return;
-
-  try {
-    await signOut(auth);
-  } catch (e) {
-    alert("Abmelden fehlgeschlagen: " + (e?.message ?? e));
-  }
-};
-
+  // Logout mit Nachfrage
+  logoutBtn.onclick = async () => {
+    const ok = confirm("Möchtest du dich wirklich abmelden?");
+    if (!ok) return;
+    try { await signOut(auth); }
+    catch (e) { alert("Abmelden fehlgeschlagen: " + (e?.message ?? e)); }
+  };
 
   // --- Persistenz: steuerung { liste, pos, initialized, raum1, raum2 } ---
   async function ladeSteuerung() {
@@ -364,13 +409,13 @@ logoutBtn.onclick = async () => {
     await set(ref(db, "steuerung"), { liste: klassen, pos, initialized, raum1, raum2 });
   }
 
-  // Schreibt die öffentliche Anzeige inkl. Räume
+  // Öffentliche Anzeige inkl. Räume schreiben
   async function schreibeAnzeige() {
-    const aktuell = klassen[pos] ?? "";
-    const vorb    = klassen[pos + 1] ?? "";
+    const aktuell = (klassen[pos] ?? "").trim() || null;
+    const vorb    = (klassen[pos + 1] ?? "").trim() || null;
     // Räume abwechselnd nach Index
-    const aktuellRaum      = (typeof aktuell === "string" && aktuell) ? ((pos % 2 === 0) ? raum1 : raum2) : "";
-    const vorbereitungRaum = (typeof vorb === "string" && vorb)        ? (((pos + 1) % 2 === 0) ? raum1 : raum2) : "";
+    const aktuellRaum      = aktuell ? ((pos % 2 === 0) ? raum1 : raum2) : null;
+    const vorbereitungRaum = vorb    ? (((pos + 1) % 2 === 0) ? raum1 : raum2) : null;
     const now = Date.now();
     await update(ref(db, "anzeige"), {
       aktuell,
@@ -536,10 +581,10 @@ logoutBtn.onclick = async () => {
     await speichereSteuerung();
     const now = Date.now();
     await update(ref(db, "anzeige"), {
-      aktuell: "",
-      vorbereitung: "",
-      aktuellRaum: "",
-      vorbereitungRaum: "",
+      aktuell: null,
+      vorbereitung: null,
+      aktuellRaum: null,
+      vorbereitungRaum: null,
       aktualisiertAm: now,
       updatedAt: now
     });
@@ -617,7 +662,3 @@ logoutBtn.onclick = async () => {
 </script>
 </body>
 </html>
-
-
-
-
