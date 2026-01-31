@@ -40,8 +40,8 @@
     .card.vorb   { border-color: color-mix(in lab, var(--c-vorb)    60%, transparent); }
     .card .title { opacity:.9; font-weight:700; letter-spacing:.06em; text-transform: uppercase; font-size:14px; }
     .card .value { margin-top:.25em; font-weight:800; line-height:1.1; font-size: clamp(28px, 5vw, 64px); word-wrap:break-word; }
-    /* Raumzeile in der Vorschau (klein, gut lesbar) */
-    .card .room  { margin-top:.35em; font-size: clamp(12px, 2.2vw, 18px); opacity:.85; font-weight:600; }
+    /* Raumzeile in der Vorschau (größer, gut lesbar) */
+    .card .room  { margin-top:.35em; font-size: clamp(14px, 3vw, 24px); opacity:.85; font-weight:600; }
 
     @media (max-width: 740px){ .cards{ grid-template-columns:1fr; } }
 
@@ -103,6 +103,28 @@
     }
     /* Optional: kompaktere Optik insgesamt im Modal */
     .modal-content input, .modal-content textarea { border-radius: 6px; }
+
+    /* Logout-Button: fixed unten rechts */
+    .logout-btn {
+      position: fixed;
+      right: 16px;
+      bottom: 16px;
+      z-index: 1500;
+      background: #0f172a;
+      color: #eaf2ff;
+      border: 1px solid #334155;
+      border-radius: 999px;
+      padding: 10px 14px;
+      font-size: 14px;
+      display: none; /* nur anzeigen, wenn eingeloggt */
+      box-shadow: 0 8px 24px rgba(0,0,0,.35);
+      cursor: pointer;
+    }
+    .logout-btn:hover { background: #111827; border-color: #475569; }
+    .logout-btn:active { transform: translateY(1px); }
+    @media (max-width: 740px) {
+      .logout-btn { right: 12px; bottom: 12px; padding: 9px 12px; font-size: 13px; }
+    }
   </style>
 </head>
 <body>
@@ -202,6 +224,9 @@
   </div>
 </div>
 
+<!-- Logout (unten rechts, nur sichtbar wenn eingeloggt) -->
+<button id="logoutBtn" class="logout-btn" title="Abmelden">Abmelden</button>
+
 <script type="module">
   // --- Firebase Config ---
   const firebaseConfig = {
@@ -216,7 +241,7 @@
   };
 
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
   import { getDatabase, ref, get, set, update } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
   const app  = initializeApp(firebaseConfig);
@@ -238,6 +263,7 @@
   const cardVorbRoom    = document.getElementById("cardVorbRoom");
   const loginError = document.getElementById("loginError");
   const editBtn    = document.getElementById("editBtn");
+  const logoutBtn  = document.getElementById("logoutBtn"); // Logout
 
   // Modal
   const listModal = document.getElementById("listModal");
@@ -287,6 +313,7 @@
     const signedIn = !!user;
     loginBox.style.display = signedIn ? "none" : "";
     panel.style.display    = signedIn ? "" : "none";
+    logoutBtn.style.display = signedIn ? "inline-flex" : "none"; // Logout-Button sichtbar, wenn eingeloggt
     if (!signedIn) return;
 
     // Zustand laden
@@ -306,6 +333,12 @@
     // bereits laufend → Anzeige synchronisieren
     if (initialized) await schreibeAnzeige();
   });
+
+  // Logout-Handler
+  logoutBtn.onclick = async () => {
+    try { await signOut(auth); }
+    catch (e) { alert("Abmelden fehlgeschlagen: " + (e?.message ?? e)); }
+  };
 
   // --- Persistenz: steuerung { liste, pos, initialized, raum1, raum2 } ---
   async function ladeSteuerung() {
