@@ -58,28 +58,22 @@
     /* --- Modal für „Klassenliste bearbeiten“ --- */
     .modal { position: fixed; inset: 0; background: rgba(0,0,0,.5); display:none; align-items:center; justify-content:center; padding:20px; z-index:1000; }
     .modal.open { display:flex; }
-
-    /* Body-Scroll sperren, wenn Modal offen */
-    body.modal-open { overflow:hidden; touch-action:none; overscroll-behavior:contain; }
-
     .modal-content {
       background: var(--card-bg);
       border: 1px solid var(--card-bd);
       border-radius: 12px;
       width: min(800px, 92vw);
-      max-height: 90vh; /* Desktop/Tablet */
+      max-height: 90vh; /* wichtig: nichts überlappt, Modal kann scrollen */
       overflow: auto;
       padding: 16px;
       box-shadow: 0 10px 30px rgba(0,0,0,.4);
-      display: flex;              /* Vollflex-Layout im Inhalt */
-      flex-direction: column;     /* Header oben, Inhalt füllt, Actions unten */
     }
     .modal-content h3 { margin:0 0 10px; }
 
     /* Textarea kompakter, damit oben genug Platz für die Raum-Inputs bleibt */
     .modal-content textarea {
       width:100%;
-      height: 44vh;        /* wird auf Handy überschrieben */
+      height: 44vh;        /* vorher 50vh */
       resize: vertical;
       padding:10px;
       border-radius:8px;
@@ -96,8 +90,18 @@
     @media (max-width: 700px){ .grid-two { grid-template-columns: 1fr; } }
 
     /* Kompaktere Raum-Inputs + Labels (verhindert Überlappung) */
-    #raum1Input, #raum2Input { padding: 8px; font-size: 14px; line-height: 1.2; box-sizing: border-box; }
-    #listModal .label { margin-top: 6px; margin-bottom: 4px; display: block; }
+    #raum1Input, #raum2Input {
+      padding: 8px;       /* kleiner als Standard */
+      font-size: 14px;
+      line-height: 1.2;
+      box-sizing: border-box;
+    }
+    #listModal .label {
+      margin-top: 6px;    /* enger */
+      margin-bottom: 4px; /* separiert Label und Input */
+      display: block;
+    }
+    /* Optional: kompaktere Optik insgesamt im Modal */
     .modal-content input, .modal-content textarea { border-radius: 6px; }
 
     /* Logout-Button: fixed unten rechts (Desktop/Tablet) */
@@ -135,19 +139,26 @@
       .card .room  { font-size: clamp(13px, 2.8vw, 18px); }
     }
 
-    /* Handy: Vollbild-Modal + Buttons full width + Logout in die Box */
     @media (max-width: 640px) {
+      /* Spalten untereinander */
       .row-space { flex-direction: column; align-items: stretch; }
       .box { padding: 12px; }
       .cards { gap: 8px; }
 
+      /* Buttons volle Breite */
       .row-left { width: 100%; gap: 8px; }
-      .row-left > button { flex: 1 1 auto; width: 100%; display: inline-flex; justify-content: center; }
+      .row-left > button {
+        flex: 1 1 auto;
+        width: 100%;
+        display: inline-flex;
+        justify-content: center;
+      }
       #editBtn, #prevBtn, #resetBtn { padding: 12px 14px; font-size: 16px; }
       .big-button { width: 100%; min-height: 64px; font-size: 18px !important; padding: 14px 16px !important; }
+
       #info { font-size: 12.5px; }
 
-      /* Logout-Button innerhalb der Box, 100% Breite */
+      /* Logout-Button innerhalb der Box */
       .logout-btn {
         position: static;
         display: inline-flex; /* sichtbar, wenn eingeloggt */
@@ -155,41 +166,6 @@
         width: 100%;
         justify-content: center;
       }
-
-      /* Vollbild-Modal */
-      .modal { padding: 0; }
-      .modal-content {
-        width: 100vw; max-width: 100vw;
-        height: 100dvh; max-height: 100dvh;
-        border-radius: 0;
-        overflow: hidden; /* Scrollen im Body-Inhalt */
-        padding: calc(12px + env(safe-area-inset-top)) 12px calc(12px + env(safe-area-inset-bottom));
-        box-sizing: border-box;
-      }
-      .modal-content h3 { margin: 0 0 8px; font-size: 18px; }
-
-      /* Flexibler, scrollbarerer Modal-Inhalt */
-      .modal-body {
-        flex: 1 1 auto;
-        min-height: 0;       /* erlaubt Scroll in Kindern */
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-        overflow: hidden;     /* Container für innere Scrolls */
-      }
-      .textarea-wrap {
-        flex: 1 1 auto;
-        min-height: 0;
-        display: flex;
-      }
-      .textarea-wrap > textarea {
-        flex: 1 1 auto;
-        min-height: 0;
-        height: auto;       /* nicht fix auf vh */
-        max-height: 100%;
-        overflow: auto;     /* scrollt nur die Liste */
-      }
-      .modal-actions { position: static; margin-top: 8px; }
     }
 
     @media (max-width: 380px) {
@@ -269,27 +245,20 @@
   <div class="modal-content">
     <h3 id="modalTitle">Klassenliste bearbeiten</h3>
 
-    <!-- Flexibler, scrollbarerer Modal-Inhalt -->
-    <div class="modal-body">
-      <!-- Räume -->
-      <div class="grid-two">
-        <div>
-          <label class="label" for="raum1Input">1. Konferenzraum</label>
-          <input id="raum1Input" type="text" placeholder="z. B. 8AT" />
-        </div>
-        <div>
-          <label class="label" for="raum2Input">2. Konferenzraum</label>
-          <input id="raum2Input" type="text" placeholder="z. B. 8S" />
-        </div>
+    <!-- Räume (kompakt) -->
+    <div class="grid-two" style="margin-bottom:10px;">
+      <div>
+        <label class="label" for="raum1Input">1. Konferenzraum</label>
+        <input id="raum1Input" type="text" placeholder="z. B. 8AT" />
       </div>
-
-      <!-- Textarea mit eigenem Scrollbereich -->
-      <div class="textarea-wrap">
-        <textarea id="editorTextarea" placeholder="z. B.&#10;1A&#10;1B&#10;1C&#10;2A&#10;…"></textarea>
+      <div>
+        <label class="label" for="raum2Input">2. Konferenzraum</label>
+        <input id="raum2Input" type="text" placeholder="z. B. 8S" />
       </div>
     </div>
 
-    <!-- Aktionen unten -->
+    <textarea id="editorTextarea" placeholder="z. B.&#10;1A&#10;1B&#10;1C&#10;2A&#10;…"></textarea>
+
     <div class="modal-actions">
       <div class="muted">Tipp: Eine Klasse pro Zeile. Leere Zeilen werden ignoriert.</div>
       <div class="row-left">
@@ -625,20 +594,18 @@
     aktualisiereKlassenListe();
   };
 
-  // --- Modal öffnen/schließen (Hintergrund-Scroll sperren) ---
+  // --- Modal öffnen/schließen ---
   function openListEditor() {
     editorTextarea.value = klassen.join("\n");
     raum1Input.value = raum1;
     raum2Input.value = raum2;
     listModal.classList.add("open");
     listModal.setAttribute("aria-hidden", "false");
-    document.body.classList.add("modal-open");   // Hintergrund-Scroll sperren
     setTimeout(() => editorTextarea.focus(), 50);
   }
   function closeListEditor() {
     listModal.classList.remove("open");
     listModal.setAttribute("aria-hidden", "true");
-    document.body.classList.remove("modal-open"); // Scroll wieder erlauben
   }
   editBtn.onclick = openListEditor;
   cancelEditBtn.onclick = closeListEditor;
