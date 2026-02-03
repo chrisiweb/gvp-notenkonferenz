@@ -3,662 +3,245 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>GvP Notenkonferenz Liveticker</title>
+  <title>GvP Notenkonferenz – Liveticker</title>
   <meta name="robots" content="noindex,nofollow" />
   <style>
     :root {
       --bg: #0b1020;
       --fg: #eaf2ff;
-      --c-aktuell: #0ea5e9;
-      --c-vorb: #22c55e;
-      --card-bg: #151a31;
-      --card-bd: #2a335f;
+      --color-aktuell: #0ea5e9; /* hellblau */
+      --color-vorb:    #22c55e; /* grün   */
     }
-    body { font-family: system-ui, Segoe UI, Roboto, Arial, sans-serif; margin:0; padding:20px; background:var(--bg); color:var(--fg); }
-    .box { background: var(--card-bg); padding:20px; border-radius:12px; max-width:900px; margin:auto; border:1px solid var(--card-bd); }
-    input { width:100%; padding:10px; border-radius:8px; background:#0f1428; color:#eaf2ff; border:1px solid var(--card-bd); }
-    button { padding:10px 16px; border:0; border-radius:8px; cursor:pointer; font-size:16px; }
-    .big-button {
-      padding: 20px 32px !important;
-      font-size: 24px !important;
-      min-width: 140px; min-height: 110px;
-      display: flex; justify-content: center; align-items: center;
+    html, body {
+      height: 100%;
+      margin: 0;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: system-ui, Segoe UI, Roboto, Arial, sans-serif;
     }
-    .btn-primary { background:#3b82f6; color:white; }
-    .btn-red { background:#ef4444; color:white; }
-    .row-space { display:flex; gap:8px; align-items:center; justify-content:space-between; margin-top:10px; }
-    .row-left  { display:flex; gap:8px; align-items:center; }
-    .label { font-weight:600; margin-top:12px; display:block; }
-    .muted { opacity:.75; font-size:13px; }
-    .error { color:#ffb4b4; margin-top:8px; }
-    .saving { opacity:.7; font-size:12px; }
-
-    /* Karten */
-    .cards{ display:grid; grid-template-columns: 1fr 1fr; gap:14px; margin-top:14px; }
-    .card { background: linear-gradient(135deg, rgba(255,255,255,.03), rgba(255,255,255,.01)); border:1px solid var(--card-bd); border-radius:14px; padding:16px; box-shadow: 0 10px 30px rgba(0,0,0,.25); }
-    .card.aktuell{ border-color: color-mix(in lab, var(--c-aktuell) 60%, transparent); }
-    .card.vorb   { border-color: color-mix(in lab, var(--c-vorb)    60%, transparent); }
-    .card .title { opacity:.9; font-weight:700; letter-spacing:.06em; text-transform: uppercase; font-size:14px; }
-    .card .value { margin-top:.25em; font-weight:800; line-height:1.1; font-size: clamp(28px, 5vw, 64px); word-wrap:break-word; }
-    /* Raumzeile in der Vorschau (größer, gut lesbar) */
-    .card .room  { margin-top:.35em; font-size: clamp(14px, 3vw, 24px); opacity:.85; font-weight:600; }
-
-    @media (max-width: 740px){ .cards{ grid-template-columns:1fr; } }
-
-    /* --- Interaktive klickbare Klassenliste --- */
-    .listView { margin-top: 10px; border: 1px solid var(--card-bd); border-radius: 8px; background: #0f1428; max-height: 300px; overflow-y: auto; padding: 4px 0; font-size: 15px; }
-    .listItem { padding: 6px 12px; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.05); display:flex; gap:8px; align-items:center; scroll-margin: 10px; }
-    .listItem:hover { background: rgba(255,255,255,0.05); }
-    .listItem.active{ background: rgba(14,165,233,0.20); border-left: 4px solid var(--c-aktuell); padding-left: 8px; }
-    .listItem.next  { background: rgba(34,197,94,0.16);  border-left: 4px solid var(--c-vorb);    padding-left: 8px; }
-    .pill { display:inline-block; font-size:11px; padding:2px 6px; border-radius:999px; background: rgba(255,255,255,0.10); opacity:.9; }
-    .pill.vorb { background: rgba(34,197,94,0.22); }
-    .listEmpty { padding:8px 12px; opacity:.7; font-style:italic; }
-
-    /* --- Modal für „Klassenliste bearbeiten“ --- */
-    .modal { position: fixed; inset: 0; background: rgba(0,0,0,.5); display:none; align-items:center; justify-content:center; padding:20px; z-index:1000; }
-    .modal.open { display:flex; }
-    .modal-content {
-      background: var(--card-bg);
-      border: 1px solid var(--card-bd);
-      border-radius: 12px;
-      width: min(800px, 92vw);
-      max-height: 90vh; /* wichtig: nichts überlappt, Modal kann scrollen */
-      overflow: auto;
-      padding: 16px;
-      box-shadow: 0 10px 30px rgba(0,0,0,.4);
-    }
-    .modal-content h3 { margin:0 0 10px; }
-
-    /* Textarea kompakter, damit oben genug Platz für die Raum-Inputs bleibt */
-    .modal-content textarea {
-      width:100%;
-      height: 44vh;        /* vorher 50vh */
-      resize: vertical;
-      padding:10px;
-      border-radius:8px;
-      border:1px solid var(--card-bd);
-      background:#0f1428; color:#eaf2ff;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    }
-
-    .modal-actions { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-top:10px; }
-    .btn-ghost { background: transparent; color: var(--fg); border: 1px solid var(--card-bd); }
-
-    /* Räume: Zweispaltig, robust gegen lange Platzhaltertexte */
-    .grid-two { display:grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap:8px; }
-    @media (max-width: 700px){ .grid-two { grid-template-columns: 1fr; } }
-
-    /* Kompaktere Raum-Inputs + Labels (verhindert Überlappung) */
-    #raum1Input, #raum2Input {
-      padding: 8px;       /* kleiner als Standard */
-      font-size: 14px;
-      line-height: 1.2;
+    .wrap {
+      display: grid;
+      grid-template-rows: 1fr 1fr;
+      gap: 28px;
+      padding: clamp(12px, 3vw, 40px);
+      height: 100%;
       box-sizing: border-box;
     }
-    #listModal .label {
-      margin-top: 6px;    /* enger */
-      margin-bottom: 4px; /* separiert Label und Input */
-      display: block;
+    .card {
+      border-radius: 24px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 24px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.35);
     }
-    /* Optional: kompaktere Optik insgesamt im Modal */
-    .modal-content input, .modal-content textarea { border-radius: 6px; }
+    .aktuell {
+      background: linear-gradient(135deg, color-mix(in lab, var(--color-aktuell) 25%, transparent), rgba(255,255,255,.04));
+      border: 2px solid color-mix(in lab, var(--color-aktuell) 60%, transparent);
+    }
+    .vorb {
+      background: linear-gradient(135deg, color-mix(in lab, var(--color-vorb) 25%, transparent), rgba(255,255,255,.04));
+      border: 2px solid color-mix(in lab, var(--color-vorb) 60%, transparent);
+    }
+    .label {
+      opacity: .85;
+      font-weight: 600;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      font-size: clamp(14px, 2.2vw, 20px);
+    }
+    /* große Klassenanzeige */
+    .value {
+      margin-top: .25em;
+      font-weight: 900;
+      line-height: 1.0;
+      font-size: clamp(48px, 12vw, 180px);
+      word-wrap: break-word;
+      letter-spacing: 0.01em;
+    }
+    /* NEU: Raumzeile (größer) */
+    .room {
+      margin-top: .35em;
+      font-size: clamp(14px, 3vw, 24px);
+      opacity: .85;
+      font-weight: 600;
+    }
 
-    /* Logout-Button: fixed unten rechts (Desktop/Tablet) */
-    .logout-btn {
+    /* Zeitstempel unten rechts */
+    .footer {
       position: fixed;
+      bottom: 10px;
       right: 16px;
-      bottom: 16px;
-      z-index: 1500;
-      background: #0f172a;
-      color: #eaf2ff;
-      border: 1px solid #334155;
-      border-radius: 999px;
-      padding: 10px 14px;
-      font-size: 14px;
-      display: none; /* nur anzeigen, wenn eingeloggt */
-      box-shadow: 0 8px 24px rgba(0,0,0,.35);
+      opacity: .5;
+      font-size: 12px;
+    }
+    /* Ton-Schalter: fixiert oben rechts */
+    .sound-toggle {
+      position: fixed;
+      top: 12px;
+      right: 12px;
+      z-index: 10;
+    }
+    .btn {
+      appearance: none;
+      border: 1px solid rgba(234,242,255,.25);
+      background: rgba(255,255,255,.08);
+      color: var(--fg);
+      border-radius: 10px;
+      padding: 8px 10px;
+      font-size: 16px; /* Emoji lesbar */
       cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 6px 18px rgba(0,0,0,.25);
     }
-    .logout-btn:hover { background: #111827; border-color: #475569; }
-    .logout-btn:active { transform: translateY(1px); }
-
-    /* --- Responsive Verbesserungen --- */
-    @media (max-width: 860px) {
-      .box { padding: 14px; border-radius: 10px; }
-      .row-space { gap: 10px; align-items: stretch; }
-      .big-button {
-        min-width: 0;
-        min-height: 72px;
-        font-size: 20px !important;
-        padding: 16px 20px !important;
-      }
-      .cards { gap: 10px; }
-      .card { padding: 12px; }
-      .card .value { font-size: clamp(24px, 6vw, 48px); }
-      .card .room  { font-size: clamp(13px, 2.8vw, 18px); }
+    .btn[aria-pressed="true"] {
+      background: rgba(34,197,94,.20);
+      border-color: rgba(34,197,94,.55);
     }
-
-    @media (max-width: 640px) {
-      /* Spalten untereinander */
-      .row-space { flex-direction: column; align-items: stretch; }
-      .box { padding: 12px; }
-      .cards { gap: 8px; }
-
-      /* Buttons volle Breite */
-      .row-left { width: 100%; gap: 8px; }
-      .row-left > button {
-        flex: 1 1 auto;
-        width: 100%;
-        display: inline-flex;
-        justify-content: center;
-      }
-      #editBtn, #prevBtn, #resetBtn { padding: 12px 14px; font-size: 16px; }
-      .big-button { width: 100%; min-height: 64px; font-size: 18px !important; padding: 14px 16px !important; }
-
-      #info { font-size: 12.5px; }
-
-      /* Logout-Button innerhalb der Box */
-      .logout-btn {
-        position: static;
-        display: inline-flex; /* sichtbar, wenn eingeloggt */
-        margin-top: 10px;
-        width: 100%;
-        justify-content: center;
-      }
-    }
-
-    @media (max-width: 380px) {
-      .card .value { font-size: clamp(22px, 7vw, 40px); }
-      .card .room  { font-size: clamp(12px, 3.2vw, 16px); }
-      .btn-primary, .btn-red, .btn-ghost { font-size: 15px; }
+    @media (orientation: portrait) {
+      .wrap { grid-template-rows: auto auto; }
+      .value { font-size: clamp(42px, 14vw, 160px); }
     }
   </style>
 </head>
 <body>
-<div class="box">
-  <h2>GvP Notenkonferenz Liveticker</h2>
-
-  <!-- Login -->
-  <div id="loginBox">
-    <label class="label">Benutzername</label>
-    <input id="email" type="text" autocomplete="username"/>
-    <label class="label">Passwort</label>
-    <input id="passwort" type="password" autocomplete="current-password" />
-    <div class="row-left">
-      <button id="loginBtn" class="btn-primary">Anmelden</button>
-    </div>
-    <div id="loginError" class="error"></div>
-    <div class="muted" style="margin-top:6px;">
-      Für GitHub Pages muss die Domain <code>chrisiweb.github.io</code> in Firebase unter
-      <i>Authentifizierung → Einstellungen → Autorisierte Domains</i> freigegeben sein.
-    </div>
+  <!-- Ton-Schalter oben rechts -->
+  <div class="sound-toggle">
+    <button id="soundToggle" class="btn" aria-pressed="false" title="Ton bei Änderungen aktivieren/deaktivieren">
+      <span id="bellIcon" aria-hidden="true">🔕</span>
+      <span id="bellText">Ton aus</span>
+    </button>
   </div>
 
-  <!-- Panel -->
-  <div id="panel" style="display:none;">
-    <!-- Vorschau-Karten -->
-    <div class="cards">
-      <div class="card aktuell">
-        <div class="title">Aktuell</div>
-        <div id="cardAktuell" class="value">–</div>
-        <div id="cardAktuellRoom" class="room"></div><!-- Raum-Vorschau -->
-      </div>
-      <div class="card vorb">
-        <div class="title">In Vorbereitung</div>
-        <div id="cardVorb" class="value">–</div>
-        <div id="cardVorbRoom" class="room"></div><!-- Raum-Vorschau -->
-      </div>
-    </div>
+  <div class="wrap">
+    <section class="card aktuell">
+      <div class="label">Laufende Klassenkonferenz</div>
+      <div id="aktuell" class="value">–</div>
+      <!-- NEU: Raumzeile -->
+      <div id="aktuellRoom" class="room"></div>
+    </section>
 
-    <!-- Aktionen oben -->
-    <div class="row-space" style="margin-top:12px;">
-      <div class="row-left">
-        <button id="startNextBtn" class="btn-primary big-button" title="Startet mit den ersten zwei Klassen; danach »Nächste Klasse«">
-          Konferenz starten
-        </button>
-      </div>
-    </div>
-
-    <!-- Interaktive, klickbare Liste mit Markierung -->
-    <div id="klassenList" class="listView"></div>
-
-    <div class="muted">Klicke auf eine Klasse, um direkt zu dieser Klasse zu wechseln.</div>
-
-    <div class="row-space">
-      <div class="row-left">
-        <button id="editBtn" class="btn-ghost" title="Klassenliste bearbeiten und speichern">Klassen/Räume bearbeiten</button>
-        <span id="saveHint" class="saving" aria-live="polite"></span>
-      </div>
-      <div class="row-left">
-        <button id="prevBtn" class="btn-red" title="Geht einen Schritt zurück (In Vorbereitung → Aktuell; vorige Klasse → in Vorbereitung)">Eine Klasse zurückspringen</button>
-        <button id="resetBtn" class="btn-red" style="background:#b91c1c;">Reset</button>
-      </div>
-    </div>
-
-    <div id="info" class="muted" style="margin-top:10px;"></div>
+    <section class="card vorb">
+      <div class="label">In Vorbereitung</div>
+      <div id="vorb" class="value">–</div>
+      <!-- NEU: Raumzeile -->
+      <div id="vorbRoom" class="room"></div>
+    </section>
   </div>
-</div>
 
-<!-- Modal: Klassenliste bearbeiten -->
-<div id="listModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-hidden="true">
-  <div class="modal-content">
-    <h3 id="modalTitle">Klassenliste bearbeiten</h3>
+  <div class="footer" id="ts"></div>
 
-    <!-- Räume (kompakt) -->
-    <div class="grid-two" style="margin-bottom:10px;">
-      <div>
-        <label class="label" for="raum1Input">1. Konferenzraum</label>
-        <input id="raum1Input" type="text" placeholder="z. B. 8AT" />
-      </div>
-      <div>
-        <label class="label" for="raum2Input">2. Konferenzraum</label>
-        <input id="raum2Input" type="text" placeholder="z. B. 8S" />
-      </div>
-    </div>
+  <!-- MP3 direkt neben index.html ablegen -->
+  <audio id="chime" src="chime.mp3" preload="auto"></audio>
 
-    <textarea id="editorTextarea" placeholder="z. B.&#10;1A&#10;1B&#10;1C&#10;2A&#10;…"></textarea>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
-    <div class="modal-actions">
-      <div class="muted">Tipp: Eine Klasse pro Zeile. Leere Zeilen werden ignoriert.</div>
-      <div class="row-left">
-        <button id="reverseBtn" class="btn-ghost" style="border-color:#3b82f6;color:#3b82f6;">
-          Klassenreihenfolge umdrehen
-        </button>
-        <button id="cancelEditBtn" class="btn-ghost">Abbrechen</button>
-        <button id="saveEditBtn" class="btn-primary">Speichern</button>
-      </div>
-    </div>
-  </div>
-</div>
+    const firebaseConfig = {
+      apiKey: "AIzaSyCuLVnVCnpc1JPO5eRsUpwOdTjacZ6cgso",
+      authDomain: "gvp-notenkonferenz.firebaseapp.com",
+      databaseURL: "https://gvp-notenkonferenz-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "gvp-notenkonferenz",
+      storageBucket: "gvp-notenkonferenz.firebasestorage.app",
+      messagingSenderId: "443453428623",
+      appId: "1:443453428623:web:3d3640bfe6ed2c38e871fa",
+      measurementId: "G-SVZX9DEJNP"
+    };
 
-<!-- Logout (unten rechts auf Desktop/Tablet; mobil in der Box) -->
-<button id="logoutBtn" class="logout-btn" title="Abmelden">Abmelden</button>
+    const app = initializeApp(firebaseConfig);
+    const db  = getDatabase(app);
 
-<script type="module">
-  // --- Firebase Config ---
-  const firebaseConfig = {
-    apiKey: "AIzaSyCuLVnVCnpc1JPO5eRsUpwOdTjacZ6cgso",
-    authDomain: "gvp-notenkonferenz.firebaseapp.com",
-    databaseURL: "https://gvp-notenkonferenz-default-rtdb.europe-west1.firebasedatabase.app",
-    projectId: "gvp-notenkonferenz",
-    storageBucket: "gvp-notenkonferenz.appspot.com",
-    messagingSenderId: "443453428623",
-    appId: "1:443453428623:web:3d3640bfe6ed2c38e871fa",
-    measurementId: "G-SVZX9DEJNP"
-  };
+    const aktuellEl     = document.getElementById('aktuell');
+    const vorbEl        = document.getElementById('vorb');
+    const aktuellRoomEl = document.getElementById('aktuellRoom');
+    const vorbRoomEl    = document.getElementById('vorbRoom');
+    const tsEl          = document.getElementById('ts');
 
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-  import { getDatabase, ref, get, set, update } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+    const soundToggleBtn = document.getElementById('soundToggle');
+    const bellIcon = document.getElementById('bellIcon');
+    const bellText = document.getElementById('bellText');
 
-  const app  = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db   = getDatabase(app);
+    // Audio-Element
+    const audioEl = document.getElementById('chime');
+    audioEl.volume = 1.0;
+    let soundEnabled = false; // standardmäßig aus
 
-  // DOM
-  const loginBox = document.getElementById("loginBox");
-  const panel    = document.getElementById("panel");
-  const info     = document.getElementById("info");
-  const startNextBtn = document.getElementById("startNextBtn");
-  const prevBtn  = document.getElementById("prevBtn");
-  const resetBtn = document.getElementById("resetBtn");
-  const klassenList = document.getElementById("klassenList");
-  const saveHint = document.getElementById("saveHint");
-  const cardAktuell = document.getElementById("cardAktuell");
-  const cardVorb    = document.getElementById("cardVorb");
-  const cardAktuellRoom = document.getElementById("cardAktuellRoom");
-  const cardVorbRoom    = document.getElementById("cardVorbRoom");
-  const loginError = document.getElementById("loginError");
-  const editBtn    = document.getElementById("editBtn");
-  const logoutBtn  = document.getElementById("logoutBtn"); // Logout
-
-  // Modal
-  const listModal = document.getElementById("listModal");
-  const editorTextarea = document.getElementById("editorTextarea");
-  const saveEditBtn    = document.getElementById("saveEditBtn");
-  const cancelEditBtn  = document.getElementById("cancelEditBtn");
-  // Raum-Inputs
-  const raum1Input = document.getElementById("raum1Input");
-  const raum2Input = document.getElementById("raum2Input");
-
-  // Zustand
-  let klassen = [];  // Array der Klassen
-  let pos = 0;       // Index der „Aktuell“-Klasse
-  let initialized = false; // erst nach „Konferenz starten“ true
-  // Räume (Default)
-  let raum1 = "8AT";
-  let raum2 = "8S";
-
-  // --- Alias-Mapping ---
-  const USERNAME_ALIASES = { "gvp": "admin@gvp-notenkonferenz.local" };
-  function mapToEmail(input) {
-    const raw = (input ?? "").trim();
-    const key = raw.toLowerCase();
-    if (USERNAME_ALIASES[key]) return USERNAME_ALIASES[key];
-    return raw;
-  }
-
-  // --- Login ---
-  document.getElementById("loginBtn").onclick = async () => {
-    const emailOrUser = (document.getElementById("email").value ?? "").trim();
-    const pass        = (document.getElementById("passwort").value ?? "").trim();
-    loginError.textContent = "";
-    try {
-      const email = mapToEmail(emailOrUser);
-      await signInWithEmailAndPassword(auth, email, pass);
-    } catch (err) {
-      const msg = (err?.code === "auth/invalid-login-credentials" || err?.code === "auth/wrong-password")
-        ? "Benutzername/E‑Mail oder Passwort falsch."
-        : (err?.message ?? String(err));
-      loginError.textContent = msg;
+    function updateBellUI() {
+      soundToggleBtn.setAttribute('aria-pressed', soundEnabled ? 'true' : 'false');
+      bellIcon.textContent = soundEnabled ? '\u{1F514}' : '\u{1F515}';
+      bellText.textContent = soundEnabled ? 'Ton an' : 'Ton aus';
     }
-  };
 
-  onAuthStateChanged(auth, async (user) => {
-    const signedIn = !!user;
-    loginBox.style.display = signedIn ? "none" : "";
-    panel.style.display    = signedIn ? "" : "none";
-    logoutBtn.style.display = signedIn ? "inline-flex" : "none"; // Logout sichtbar, wenn eingeloggt
-    if (!signedIn) return;
-
-    // Zustand laden
-    await ladeSteuerung();
-
-    // UI initial
-    editorTextarea.value = klassen.join("\n");
-    raum1Input.value = raum1;
-    raum2Input.value = raum2;
-
-    aktualisiereKarten();
-    aktualisiereStartNextLabel();
-    zeigeInfo();
-    aktualisiereKlassenListe();
-    requestAnimationFrame(keepActiveAndNextInView);
-
-    // bereits laufend → Anzeige synchronisieren
-    if (initialized) await schreibeAnzeige();
-  });
-
-  // Logout mit Nachfrage
-  logoutBtn.onclick = async () => {
-    const ok = confirm("Möchtest du dich wirklich abmelden?");
-    if (!ok) return;
-    try { await signOut(auth); }
-    catch (e) { alert("Abmelden fehlgeschlagen: " + (e?.message ?? e)); }
-  };
-
-  // --- Persistenz: steuerung { liste, pos, initialized, raum1, raum2 } ---
-  async function ladeSteuerung() {
-    const snap = await get(ref(db, "steuerung"));
-    const v = snap.exists() ? snap.val() : {};
-    klassen = Array.isArray(v.liste) ? v.liste : [];
-    pos = Number.isInteger(v.pos) ? v.pos : 0;
-    initialized = typeof v.initialized === "boolean" ? v.initialized : false;
-
-    // Räume (+ Defaults)
-    raum1 = (typeof v.raum1 === "string" && v.raum1.trim()) ? v.raum1.trim() : "8AT";
-    raum2 = (typeof v.raum2 === "string" && v.raum2.trim()) ? v.raum2.trim() : "8S";
-
-    // Pos begrenzen
-    if (pos < 0) pos = 0;
-    if (pos >= Math.max(klassen.length, 1)) pos = Math.max(klassen.length - 1, 0);
-  }
-
-  async function speichereSteuerung() {
-    await set(ref(db, "steuerung"), { liste: klassen, pos, initialized, raum1, raum2 });
-  }
-
-  // Öffentliche Anzeige inkl. Räume schreiben
-  async function schreibeAnzeige() {
-    const aktuell = (klassen[pos] ?? "").trim() || null;
-    const vorb    = (klassen[pos + 1] ?? "").trim() || null;
-    // Räume abwechselnd nach Index
-    const aktuellRaum      = aktuell ? ((pos % 2 === 0) ? raum1 : raum2) : null;
-    const vorbereitungRaum = vorb    ? (((pos + 1) % 2 === 0) ? raum1 : raum2) : null;
-    const now = Date.now();
-    await update(ref(db, "anzeige"), {
-      aktuell,
-      vorbereitung: vorb,
-      aktuellRaum,
-      vorbereitungRaum,
-      aktualisiertAm: now,
-      updatedAt: now
-    });
-  }
-
-  // --- UI-Helper ---
-  function zeigeInfo() {
-    const a = (initialized ? (klassen[pos] ?? "—") : "—");
-    const v = (initialized ? (klassen[pos + 1] ?? "—") : "—");
-    info.innerHTML = `
-      <div>Aktuell: <b>${a}</b></div>
-      <div>In Vorbereitung: <b>${v}</b></div>
-      <div>Position: ${klassen.length ? (pos + 1) : 0} / ${klassen.length} ${initialized ? "" : "(noch nicht gestartet)"}</div>
-    `;
-  }
-
-  function aktualisiereKarten() {
-    const a = initialized ? (klassen[pos] ?? "—") : "—";
-    const v = initialized ? (klassen[pos + 1] ?? "—") : "—";
-    cardAktuell.textContent = a;
-    cardVorb.textContent    = v;
-
-    // Räume in der Admin-Vorschau
-    const aRoom = (initialized && a && typeof a === "string") ? ((pos % 2 === 0) ? raum1 : raum2) : "";
-    const vRoom = (initialized && v && typeof v === "string") ? (((pos + 1) % 2 === 0) ? raum1 : raum2) : "";
-    cardAktuellRoom.textContent = aRoom ? `(Raum: ${aRoom})` : "";
-    cardVorbRoom.textContent    = vRoom ? `(Raum: ${vRoom})` : "";
-  }
-
-  function aktualisiereStartNextLabel() {
-    startNextBtn.textContent = initialized ? "Nächste Klasse" : "Konferenz starten";
-  }
-
-  // --- Klickbare Liste rendern ---
-  function aktualisiereKlassenListe() {
-    klassenList.innerHTML = "";
-    if (!klassen.length) {
-      const empty = document.createElement("div");
-      empty.className = "listEmpty";
-      empty.textContent = "Noch keine Klassen eingetragen.";
-      klassenList.appendChild(empty);
-      return;
-    }
-    klassen.forEach((k, i) => {
-      const div = document.createElement("div");
-      div.className = "listItem";
-      if (initialized && i === pos) div.classList.add("active");
-      else if (initialized && i === pos + 1) div.classList.add("next");
-      div.dataset.index = String(i);
-
-      const label = document.createElement("div");
-      label.textContent = k;
-      label.style.flex = "1 1 auto";
-
-      const pill = document.createElement("span");
-      pill.className = "pill";
-      if (initialized && i === pos) {
-        pill.textContent = "Aktuell";
-      } else if (initialized && i === pos + 1) {
-        pill.textContent = "Vorbereitung";
-        pill.classList.add("vorb");
-      } else {
-        pill.textContent = "";
-        pill.style.opacity = "0";
+    soundToggleBtn.addEventListener('click', async () => {
+      // Nutzeraktion: erlaubt Audio-Wiedergabe im Browser
+      try { await audioEl.play(); audioEl.pause(); audioEl.currentTime = 0; } catch {}
+      soundEnabled = !soundEnabled;
+      updateBellUI();
+      // kurzes akustisches Feedback nur bei Aktivierung
+      if (soundEnabled) {
+        try { audioEl.currentTime = 0; await audioEl.play(); }
+        catch(e) { console.warn('Konnte Testton nicht abspielen:', e); }
       }
-
-      div.appendChild(label);
-      div.appendChild(pill);
-
-      // Direkt zu Klasse springen
-      div.onclick = async () => {
-        if (i === pos) return;
-        const ok = confirm("Möchtest du die aktuelle Klasse wirklich ändern?");
-        if (!ok) return;
-        pos = i;
-        initialized = true;
-        await speichereSteuerung();
-        await schreibeAnzeige();
-        aktualisiereKarten();
-        aktualisiereStartNextLabel();
-        zeigeInfo();
-        aktualisiereKlassenListe();
-        keepActiveAndNextInView();
-      };
-      klassenList.appendChild(div);
     });
-  }
 
-  // Beide (Aktuell & Vorbereitung) im Sichtbereich halten
-  function keepActiveAndNextInView() {
-    if (!initialized) return;
-    const cont = klassenList; if (!cont) return;
-    const active = cont.querySelector(".listItem.active");
-    const next   = cont.querySelector(".listItem.next");
-    if (!active && !next) return;
+    async function playChime() {
+      if (!soundEnabled) return;
+      try {
+        audioEl.currentTime = 0;
+        await audioEl.play();
+      } catch (e) {
+        console.warn('Ton konnte nicht abgespielt werden:', e);
+      }
+    }
 
-    const crect = cont.getBoundingClientRect();
-    let top = Infinity, bottom = -Infinity;
-    [active, next].forEach(el => {
-      if (!el) return;
-      const r = el.getBoundingClientRect();
-      const relTop = (r.top - crect.top) + cont.scrollTop;
-      const relBottom = (r.bottom - crect.top) + cont.scrollTop;
-      if (relTop < top) top = relTop;
-      if (relBottom > bottom) bottom = relBottom;
+    // ===== Anzeige robust aus DB lesen =====
+    const textOrDash = (x) => {
+      const s = (x ?? '').toString().trim();
+      return s.length ? s : '–';
+    };
+    const roomOrEmpty = (x) => {
+      const s = (x ?? '').toString().trim();
+      return s.length ? `(Raum: ${s})` : '';
+    };
+
+    let prev = { aktuell: null, vorbereitung: null };
+
+    onValue(ref(db, 'anzeige'), (snap) => {
+      const v = snap.val() ?? {};
+
+      // Inhalte (robust gegen "", null, undefined)
+      const neuAktuell = textOrDash(v.aktuell);
+      const neuVorb    = textOrDash(v.vorbereitung);
+
+      const changed =
+        (prev.aktuell !== null && prev.aktuell !== neuAktuell) ||
+        (prev.vorbereitung !== null && prev.vorbereitung !== neuVorb);
+
+      aktuellEl.textContent = neuAktuell;
+      vorbEl.textContent    = neuVorb;
+
+      // Räume
+      aktuellRoomEl.textContent = roomOrEmpty(v.aktuellRaum);
+      vorbRoomEl.textContent    = roomOrEmpty(v.vorbereitungRaum);
+
+      // Farben (optional von Admin setzbar)
+      document.documentElement.style.setProperty('--color-aktuell', v.colorAktuell ?? '#0ea5e9');
+      document.documentElement.style.setProperty('--color-vorb',    v.colorVorb    ?? '#22c55e');
+
+      // Zeitstempel
+      const dt = v.updatedAt ? new Date(v.updatedAt) : null;
+      tsEl.textContent = dt ? `Stand: ${dt.toLocaleString('de-AT')}` : '';
+
+      if (changed) playChime();
+      prev = { aktuell: neuAktuell, vorbereitung: neuVorb };
     });
-    if (top === Infinity || bottom === -Infinity) return;
 
-    const padding = 12;
-    const viewTop = cont.scrollTop;
-    const viewBottom = viewTop + cont.clientHeight;
-
-    if (top - padding < viewTop) {
-      cont.scrollTo({ top: Math.max(top - padding, 0), behavior: "smooth" });
-    } else if (bottom + padding > viewBottom) {
-      cont.scrollTo({ top: bottom + padding - cont.clientHeight, behavior: "smooth" });
-    }
-  }
-
-  // --- Bedienlogik ---
-  startNextBtn.onclick = async () => {
-    if (klassen.length === 0) {
-      alert("Bitte zuerst die Klassenliste eingeben (eine Klasse pro Zeile).");
-      return;
-    }
-    if (!initialized) {
-      initialized = true;
-    } else {
-      if (pos < klassen.length - 1) pos++;
-    }
-    await speichereSteuerung();
-    await schreibeAnzeige();
-    aktualisiereKarten();
-    aktualisiereStartNextLabel();
-    zeigeInfo();
-    aktualisiereKlassenListe();
-    requestAnimationFrame(keepActiveAndNextInView);
-  };
-
-  prevBtn.onclick = async () => {
-    if (!initialized || klassen.length === 0) return;
-    if (pos > 0) pos--;
-    await speichereSteuerung();
-    await schreibeAnzeige();
-    aktualisiereKarten();
-    aktualisiereStartNextLabel();
-    zeigeInfo();
-    aktualisiereKlassenListe();
-    requestAnimationFrame(keepActiveAndNextInView);
-  };
-
-  // Neustart
-  resetBtn.onclick = async () => {
-    if (!confirm("Soll die Notenkonferenz wirklich neu gestartet werden?")) return;
-    initialized = false;
-    pos = 0;
-    await speichereSteuerung();
-    const now = Date.now();
-    await update(ref(db, "anzeige"), {
-      aktuell: null,
-      vorbereitung: null,
-      aktuellRaum: null,
-      vorbereitungRaum: null,
-      aktualisiertAm: now,
-      updatedAt: now
-    });
-    aktualisiereKarten();
-    aktualisiereStartNextLabel();
-    zeigeInfo();
-    aktualisiereKlassenListe();
-  };
-
-  // --- Modal öffnen/schließen ---
-  function openListEditor() {
-    editorTextarea.value = klassen.join("\n");
-    raum1Input.value = raum1;
-    raum2Input.value = raum2;
-    listModal.classList.add("open");
-    listModal.setAttribute("aria-hidden", "false");
-    setTimeout(() => editorTextarea.focus(), 50);
-  }
-  function closeListEditor() {
-    listModal.classList.remove("open");
-    listModal.setAttribute("aria-hidden", "true");
-  }
-  editBtn.onclick = openListEditor;
-  cancelEditBtn.onclick = closeListEditor;
-  listModal.addEventListener("click", (e) => { if (e.target === listModal) closeListEditor(); });
-  window.addEventListener("keydown", (e) => { if (e.key === "Escape" && listModal.classList.contains("open")) closeListEditor(); });
-
-  // Klassenreihenfolge umdrehen
-  document.getElementById("reverseBtn").onclick = () => {
-    const lines = editorTextarea.value.split("\n").map(s => s.trim()).filter(Boolean);
-    if (lines.length === 0) { alert("Keine Klassen vorhanden."); return; }
-    const ok = confirm("Soll die Reihenfolge der Klassen wirklich umgedreht werden?");
-    if (!ok) return;
-    editorTextarea.value = lines.reverse().join("\n");
-  };
-
-  // Speichern aus dem Modal
-  saveEditBtn.onclick = async () => {
-    const lines = editorTextarea.value.split("\n").map(s => s.trim()).filter(Boolean);
-    klassen = lines;
-
-    // Räume aus den Eingaben übernehmen (mit Default)
-    raum1 = (raum1Input.value ?? "").trim() || "8AT";
-    raum2 = (raum2Input.value ?? "").trim() || "8S";
-
-    // Position & Init anpassen
-    if (klassen.length === 0) {
-      pos = 0;
-      initialized = false;
-    } else if (pos >= klassen.length) {
-      pos = klassen.length - 1;
-    }
-
-    await speichereSteuerung();
-    if (initialized) await schreibeAnzeige();
-
-    // UI aktualisieren
-    aktualisiereKarten();
-    aktualisiereStartNextLabel();
-    zeigeInfo();
-    aktualisiereKlassenListe();
-    requestAnimationFrame(keepActiveAndNextInView);
-
-    saveHint.textContent = "Gespeichert ✔";
-    setTimeout(() => saveHint.textContent = "", 1500);
-    closeListEditor();
-  };
-
-  // ENTER triggert Start/Nächste
-  window.addEventListener("keydown", (e) => {
-    if (e.key !== "Enter" || e.shiftKey || e.ctrlKey || e.altKey) return;
-    if (getComputedStyle(loginBox).display !== "none") return;
-    startNextBtn.click();
-  });
-</script>
+    // initiale UI
+    updateBellUI();
+  </script>
 </body>
 </html>
+``
