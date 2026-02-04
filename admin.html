@@ -314,29 +314,29 @@
   const app  = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const db   = getDatabase(app);
+import { onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
-  import { onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
-  
-  onValue(ref(db, "steuerung"), async (snap) => {
-      const v = snap.exists() ? snap.val() : {};
-  
-      klassen = Array.isArray(v.liste) ? v.liste : [];
-      pos = Number.isInteger(v.pos) ? v.pos : 0;
-      initialized = typeof v.initialized === "boolean" ? v.initialized : false;
-      raum1 = (typeof v.raum1 === "string" && v.raum1.trim()) ? v.raum1.trim() : "8AT";
-      raum2 = (typeof v.raum2 === "string" && v.raum2.trim()) ? v.raum2.trim() : "8S";
-  
-      // UI synchronisieren
-      editorTextarea.value = klassen.join("\n");
-      raum1Input.value = raum1;
-         raum2Input.value = raum2;
-      aktualisiereKarten();
-      aktualisiereStartNextLabel();
-      zeigeInfo();
-      aktualisiereKlassenListe();
-      requestAnimationFrame(keepActiveAndNextInView);
+onValue(ref(db, "steuerung"), (snap) => {
+    const v = snap.exists() ? snap.val() : {};
 
-  
+    klassen    = Array.isArray(v.liste) ? v.liste : [];
+    pos        = Number.isInteger(v.pos) ? v.pos : 0;
+    initialized = typeof v.initialized === "boolean" ? v.initialized : false;
+    raum1      = (v.raum1 ?? "8AT").trim();
+    raum2      = (v.raum2 ?? "8S").trim();
+
+    // Admin‑UI aktualisieren:
+    editorTextarea.value = klassen.join("\n");
+    raum1Input.value = raum1;
+    raum2Input.value = raum2;
+
+    aktualisiereKarten();
+    aktualisiereStartNextLabel();
+    zeigeInfo();
+    aktualisiereKlassenListe();
+    requestAnimationFrame(keepActiveAndNextInView);
+});
+ 
   // DOM
   const loginBox = document.getElementById("loginBox");
   const panel    = document.getElementById("panel");
@@ -703,6 +703,7 @@
 </script>
 </body>
 </html>
+
 
 
 
