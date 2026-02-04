@@ -71,19 +71,37 @@
     .modal-content h3 { margin:0 0 10px; }
 
     /* Textarea kompakter, damit oben genug Platz für die Raum-Inputs bleibt */
-    .modal-content textarea {
-      width:50%;
-      height: 44vh;        /* vorher 50vh */
-      resize: vertical;
-      padding:10px;
-      border-radius:8px;
-      border:1px solid var(--card-bd);
-      background:#0f1428; color:#eaf2ff;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    }
+.modal-content textarea {
+  width: 100%;
+  max-width: 100vw;
+  box-sizing: border-box;
+  height: 44vh;
+  resize: vertical;
+  padding:10px;
+  border-radius:8px;
+  border:1px solid var(--card-bd);
+  background:#0f1428; 
+  color:#eaf2ff;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
 
     .modal-actions { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-top:10px; }
     .btn-ghost { background: transparent; color: var(--fg); border: 1px solid var(--card-bd); }
+
+    /* Buttons im Modal: umbrechen erlauben */
+    .modal-actions .row-left {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      width: 100%;
+    }
+    
+    /* Buttons flexibel machen */
+    .modal-actions .row-left button {
+      flex: 1 1 auto;
+      min-width: 120px;
+    }
 
     /* Räume: Zweispaltig, robust gegen lange Platzhaltertexte */
     .grid-two { display:grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap:8px; }
@@ -261,7 +279,7 @@
     <div class="modal-actions">
     <div class="muted">Tipp: Eine Klasse pro Zeile. Leere Zeilen werden ignoriert.</div>
     </div>
-    <div class="row-space">
+    <div class="modal-actions">
       <div class="row-left">
         <button id="reverseBtn" class="btn-ghost" style="border-color:#3b82f6;color:#3b82f6;">
           Klassenreihenfolge umdrehen
@@ -663,5 +681,6 @@
 </script>
 </body>
 </html>
+
 
 
