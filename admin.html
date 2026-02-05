@@ -342,14 +342,6 @@
   import { getDatabase, ref, get, set, update, onValue, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
 
-  // Serverzeit ermitteln
-  async function holeServerZeitOffset() {
-    const offsetRef = ref(db, ".info/serverTimeOffset");
-    const snap = await get(offsetRef);
-    const offset = snap.val() || 0;
-    return offset; // Differenz in ms: serverZeit = Date.now() + offset
-  }
-
   const app  = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const db   = getDatabase(app);
@@ -473,22 +465,21 @@ onValue(ref(db, "zeiten"), snap => {
     // Zustand laden
     await ladeSteuerung();
 
-    try {
-      const metaSnap = await get(ref(db, "meta/startZeitGesamt"));
-      if (metaSnap.exists()) {
-        const serverStart = metaSnap.val(); // ms seit Epoche, von Firebase gesetzt
-        if (typeof serverStart === "number" && serverStart > 0) {
-          startZeitGesamt = serverStart + (serverOffset || 0); // ✅ lokal korrekt machen
-        } else {
-          startZeitGesamt = null;
-        }
+  try {
+    const metaSnap = await get(ref(db, "meta/startZeitGesamt"));
+    if (metaSnap.exists()) {
+      const serverStart = metaSnap.val(); // ms seit Epoche (Serverzeit)
+      if (typeof serverStart === "number" && serverStart > 0) {
+        startZeitGesamt = serverStart; // ✅ wichtig: OHNE +serverOffset
       } else {
         startZeitGesamt = null;
       }
-    } catch (e) {
-      // Falls irgendwas schiefgeht, nicht crashen
+    } else {
       startZeitGesamt = null;
     }
+  } catch (e) {
+    startZeitGesamt = null;
+  }
 
     // UI initial
     editorTextarea.value = klassen.join("\n");
@@ -722,10 +713,10 @@ div.onclick = async () => {
   if (!ok) return;
 
   // --- TIMER KORREKT ÜBERGEBEN ---
-  stoppeAktuelleKlasse();   // alte Klasse stoppen
+  await stoppeAktuelleKlasse();   // alte Klasse stoppen
   pos = i;                  // neue Klasse setzen
   initialized = true;       // Konferenz läuft
-  starteNeueKlasse();       // neue Klasse starten
+  await starteNeueKlasse();       // neue Klasse starten
 
   // --- SPEICHERN & UI ---
   await speichereSteuerung();
@@ -784,11 +775,11 @@ div.onclick = async () => {
       await update(ref(db, "meta"), {
         startZeitGesamt: serverTimestamp()
       });
-      starteNeueKlasse();
+      await starteNeueKlasse();
     } else {
-      stoppeAktuelleKlasse();
+      await stoppeAktuelleKlasse();
       if (pos < klassen.length - 1) pos++;
-      starteNeueKlasse();
+      await starteNeueKlasse();
     }
     await speichereSteuerung();
     await schreibeAnzeige();
@@ -803,9 +794,9 @@ div.onclick = async () => {
   prevBtn.onclick = async () => {
     if (!initialized || klassen.length === 0) return;
     if (pos > 0) {
-      stoppeAktuelleKlasse();
+      await stoppeAktuelleKlasse();
       pos--;
-      starteNeueKlasse();
+      await starteNeueKlasse();
     }
     await speichereSteuerung();
     await schreibeAnzeige();
@@ -828,6 +819,9 @@ div.onclick = async () => {
     klassenDauer = {};
     await set(ref(db, "zeiten"), {});
     const gesamtEl = document.getElementById("gesamtZeit");
+    if (gesamtEl && initialized && startZeitGesamt) {
+      gesamtEl.textContent = "Gesamtzeit: " + formatTime(serverNow() - startZeitGesamt);
+    }
     if (gesamtEl) gesamtEl.textContent = "";
     await speichereSteuerung();
     const now = serverNow();
@@ -997,3 +991,4 @@ requestAnimationFrame(timerLoop);
 </script>
 </body>
 </html>
+
