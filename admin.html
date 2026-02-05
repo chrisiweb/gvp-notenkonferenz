@@ -349,17 +349,23 @@
     const offset = snap.val() || 0;
     return offset; // Differenz in ms: serverZeit = Date.now() + offset
   }
-  
-  function serverNow() {
-    return Date.now() + serverOffset;
-  }
-
-  let serverOffset = 0;
-  holeServerZeitOffset().then(v => serverOffset = v);
 
   const app  = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const db   = getDatabase(app);
+
+  let serverOffset = 0;
+
+  
+  // Server-Zeit-Offset einmal abonnieren (immer aktuell)
+  onValue(ref(db, ".info/serverTimeOffset"), (snap) => {
+    serverOffset = snap.val() || 0;
+  });
+
+  function serverNow() {
+    return Date.now() + serverOffset;
+  }
+
 
 onValue(ref(db, "steuerung"), (snap) => {
     const v = snap.exists() ? snap.val() : {};
@@ -467,6 +473,23 @@ onValue(ref(db, "zeiten"), snap => {
     // Zustand laden
     await ladeSteuerung();
 
+    try {
+      const metaSnap = await get(ref(db, "meta/startZeitGesamt"));
+      if (metaSnap.exists()) {
+        const serverStart = metaSnap.val(); // ms seit Epoche, von Firebase gesetzt
+        if (typeof serverStart === "number" && serverStart > 0) {
+          startZeitGesamt = serverStart + (serverOffset || 0); // ✅ lokal korrekt machen
+        } else {
+          startZeitGesamt = null;
+        }
+      } else {
+        startZeitGesamt = null;
+      }
+    } catch (e) {
+      // Falls irgendwas schiefgeht, nicht crashen
+      startZeitGesamt = null;
+    }
+
     // UI initial
     editorTextarea.value = klassen.join("\n");
     raum1Input.value = raum1;
@@ -519,7 +542,7 @@ onValue(ref(db, "zeiten"), snap => {
     // Räume abwechselnd nach Index
     const aktuellRaum      = aktuell ? ((pos % 2 === 0) ? raum1 : raum2) : null;
     const vorbereitungRaum = vorb    ? (((pos + 1) % 2 === 0) ? raum1 : raum2) : null;
-    const now = Date.now();
+    const now = serverNow();
     await update(ref(db, "anzeige"), {
       aktuell,
       vorbereitung: vorb,
@@ -564,23 +587,23 @@ function formatHMS(ms) {
 function effektiveKlassenMs(klasse) {
   const rec = klassenDauer[klasse];
   if (!rec) return 0;
-  const laufend = rec.start ? (Date.now() - rec.start) : 0;
+  const laufend = rec.start ? (serverNow() - rec.start) : 0;
   return rec.dauer + laufend;
 }
 async function stoppeAktuelleKlasse() {
   const k = klassen[pos];
   if (!k) return;
 
-  if (!klassenDauer[k]) klassenDauer[k] = { start: null, dauer: 0 };
+  const rec = klassenDauer[k] || { start: null, dauer: 0 };
+  if (rec.start) {
+    rec.dauer += serverNow() - rec.start;
+    rec.start = null;
+    klassenDauer[k] = rec;
 
-  if (klassenDauer[k].start) {
-    klassenDauer[k].dauer += Date.now() - klassenDauer[k].start;
-    klassenDauer[k].start = null;
-
-  await update(ref(db, "zeiten/" + k), {
-    start: serverTimestamp(),
-    dauer: klassenDauer[k].dauer
-  });
+    await update(ref(db, "zeiten/" + k), {
+      start: null,
+      dauer: rec.dauer
+    });
   }
 }
 
@@ -588,10 +611,12 @@ async function starteNeueKlasse() {
   const k = klassen[pos];
   if (!k) return;
 
+  const now = serverNow();
+
   if (!klassenDauer[k]) {
-    klassenDauer[k] = { start: Date.now(), dauer: 0 };
+    klassenDauer[k] = { start: now, dauer: 0 };
   } else {
-    klassenDauer[k].start = Date.now();
+    klassenDauer[k].start = now;
   }
 
   await update(ref(db, "zeiten/" + k), {
@@ -599,6 +624,7 @@ async function starteNeueKlasse() {
     dauer: klassenDauer[k].dauer
   });
 }
+
   function aktualisiereKarten() {
     // Aktuell
     const curRaw = initialized ? (klassen[pos] ?? "") : "";
@@ -754,7 +780,10 @@ div.onclick = async () => {
     }
     if (!initialized) {
       initialized = true;
-      startZeitGesamt = Date.now();
+      startZeitGesamt = serverNow();
+      await update(ref(db, "meta"), {
+        startZeitGesamt: serverTimestamp()
+      });
       starteNeueKlasse();
     } else {
       stoppeAktuelleKlasse();
@@ -795,12 +824,13 @@ div.onclick = async () => {
     pos = 0;
     // --- Zeiten löschen ---
     startZeitGesamt = null;
+    await update(ref(db, "meta"), { startZeitGesamt: null })
     klassenDauer = {};
     await set(ref(db, "zeiten"), {});
     const gesamtEl = document.getElementById("gesamtZeit");
     if (gesamtEl) gesamtEl.textContent = "";
     await speichereSteuerung();
-    const now = Date.now();
+    const now = serverNow();
     await update(ref(db, "anzeige"), {
       aktuell: null,
       vorbereitung: null,
@@ -936,39 +966,34 @@ lines.push(`Gesamtzeit;${gesamtHMS}`);
     if (startNextBtn.disabled) return;
     startNextBtn.click();
   });
+
 let lastTick = 0;
 
 function timerLoop(ts) {
-  // ts = performance.now()
   if (initialized && startZeitGesamt) {
-    if (ts - lastTick >= 950) { // nahezu 1 Sekunde
+
+    // nur jede Sekunde aktualisieren
+    if (ts - lastTick >= 950) {
       lastTick = ts;
 
-      // Gesamtzeit aktualisieren
+      // --- Gesamtzeit korrekt berechnen ---
       const gesamtEl = document.getElementById("gesamtZeit");
       if (gesamtEl) {
-        const ms = (serverNow() - rec.start) + rec.dauer;
+        const ms = serverNow() - startZeitGesamt;   // <-- WICHTIG
         gesamtEl.textContent = "Gesamtzeit: " + formatTime(ms);
       }
 
-      // Klassenliste live aktualisieren (für Sekundenzähler)
+      // --- Klassenliste aktualisieren ---
       aktualisiereKlassenListe();
     }
   }
 
-  // Loop fortsetzen
   requestAnimationFrame(timerLoop);
 }
 
 requestAnimationFrame(timerLoop);
 
+
 </script>
 </body>
 </html>
-
-
-
-
-
-
-
