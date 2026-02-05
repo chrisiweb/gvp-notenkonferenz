@@ -267,9 +267,6 @@
     <div class="row-space">
       <div class="row-left">
         <button id="editBtn" class="btn-ghost" title="Klassenliste bearbeiten und speichern">Klassenliste/Räume bearbeiten</button>        
-        <button id="exportBtn" class="btn-ghost" style="border-color:#22c55e;color:#22c55e;">
-          Zeiten exportieren
-        </button>
         <span id="saveHint" class="saving" aria-live="polite"></span>
       </div>
       <div class="row-left">
@@ -280,6 +277,12 @@
 
     <div id="info" class="muted" style="margin-top:10px;"></div>
     <div id="gesamtZeit" class="muted" style="margin-top:4px;"></div>
+
+  <div style="margin-top:10px; display:flex; justify-content:flex-end;">
+    <button id="exportBtn" class="btn-ghost" style="border-color:#22c55e;color:#22c55e;">
+      Zeiten exportieren
+    </button>
+  </div>
   </div>
 </div>
 
@@ -517,7 +520,17 @@ onValue(ref(db, "steuerung"), (snap) => {
   if (h === 0) return `${m % 60}m ${s % 60}s`;
   return `${h}h ${m % 60}m ${s % 60}s`;
 }
+function formatHMS(ms) {
+  const s = Math.floor(ms / 1000);
+  const m = Math.floor(s / 60);
+  const h = Math.floor(m / 60);
 
+  const hh = String(h).padStart(2, "0");
+  const mm = String(m % 60).padStart(2, "0");
+  const ss = String(s % 60).padStart(2, "0");
+
+  return `${hh}:${mm}:${ss}`;
+}
 function stoppeAktuelleKlasse() {
   const k = klassen[pos];
   if (!k) return;
@@ -703,7 +716,11 @@ function starteNeueKlasse() {
 
   prevBtn.onclick = async () => {
     if (!initialized || klassen.length === 0) return;
-    if (pos > 0) stoppeAktuelleKlasse();pos--;starteNeueKlasse();
+    if (pos > 0) {
+      stoppeAktuelleKlasse();
+      pos--;
+      starteNeueKlasse();
+    }
     await speichereSteuerung();
     await schreibeAnzeige();
     aktualisiereKarten();
@@ -843,6 +860,7 @@ setInterval(() => {
 </script>
 </body>
 </html>
+
 
 
 
