@@ -368,6 +368,20 @@ onValue(ref(db, "steuerung"), (snap) => {
     requestAnimationFrame(keepActiveAndNextInView);
 });
  
+onValue(ref(db, "zeiten"), snap => {
+  klassenDauer = snap.exists() ? snap.val() : {};
+
+  // Falls eine Fehlstruktur kommt → reparieren
+  Object.keys(klassenDauer).forEach(k => {
+    if (!klassenDauer[k] || typeof klassenDauer[k] !== "object") {
+      klassenDauer[k] = { start: null, dauer: 0 };
+    }
+  });
+
+  // UI aktualisieren
+  aktualisiereKlassenListe();
+});
+
   // DOM
   const loginBox = document.getElementById("loginBox");
   const panel    = document.getElementById("panel");
@@ -538,7 +552,7 @@ function effektiveKlassenMs(klasse) {
   const laufend = rec.start ? (Date.now() - rec.start) : 0;
   return rec.dauer + laufend;
 }
-function stoppeAktuelleKlasse() {
+async function stoppeAktuelleKlasse() {
   const k = klassen[pos];
   if (!k) return;
 
@@ -547,15 +561,22 @@ function stoppeAktuelleKlasse() {
   if (klassenDauer[k].start) {
     klassenDauer[k].dauer += Date.now() - klassenDauer[k].start;
     klassenDauer[k].start = null;
+
+    await update(ref(db, "zeiten/" + k), klassenDauer[k]);
   }
 }
 
-function starteNeueKlasse() {
+async function starteNeueKlasse() {
   const k = klassen[pos];
   if (!k) return;
 
-  if (!klassenDauer[k]) klassenDauer[k] = { start: Date.now(), dauer: 0 };
-  else klassenDauer[k].start = Date.now();
+  if (!klassenDauer[k]) {
+    klassenDauer[k] = { start: Date.now(), dauer: 0 };
+  } else {
+    klassenDauer[k].start = Date.now();
+  }
+
+  await update(ref(db, "zeiten/" + k), klassenDauer[k]);
 }
   function aktualisiereKarten() {
     // Aktuell
@@ -754,6 +775,7 @@ div.onclick = async () => {
     // --- Zeiten löschen ---
     startZeitGesamt = null;
     klassenDauer = {};
+    await set(ref(db, "zeiten"), {});
     const gesamtEl = document.getElementById("gesamtZeit");
     if (gesamtEl) gesamtEl.textContent = "";
     await speichereSteuerung();
@@ -907,5 +929,6 @@ setInterval(() => {
 </script>
 </body>
 </html>
+
 
 
