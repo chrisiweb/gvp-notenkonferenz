@@ -278,7 +278,7 @@
     <div id="info" class="muted" style="margin-top:10px;"></div>
     <div id="gesamtZeit" class="muted" style="margin-top:4px;"></div>
 
-  <div style="margin-top:10px; display:flex; justify-content:flex-end;">
+  <div style="margin-top:10px">
     <button id="exportBtn" class="btn-ghost" style="border-color:#22c55e;color:#22c55e;">
       Zeiten exportieren
     </button>
@@ -772,7 +772,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if (!btn) return;
 
   btn.onclick = () => {
-    const lines = ["Klasse;Dauer (Sekunden);Dauer (HH:MM:SS)"];
+    const lines = ["Dauer (HH:MM:SS)"];
 
     klassen.forEach(k => {
       const totalMs = effektiveKlassenMs(k);           // <- nutzt deine Funktion
@@ -875,6 +875,7 @@ setInterval(() => {
 </script>
 </body>
 </html>
+
 
 
 
