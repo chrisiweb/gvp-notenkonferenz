@@ -798,6 +798,17 @@ klassen.forEach(k => {
   lines.push(`${k};${hms}`);
 });
 
+// --- Gesamtzeit selbst berechnen (JS) ---
+let sumMs = 0;
+klassen.forEach(k => {
+  sumMs += effektiveKlassenMs(k);
+});
+
+const gesamtHMS = formatHMS(sumMs);
+
+// --- Gesamtzeit als fertiger Text in HMS ---
+lines.push(`Gesamtzeit;${gesamtHMS}`);
+
     // 4) Gesamtzeit als Formel – NICHT als Wert!
     //
     //   → Klasse steht in Spalte A
@@ -907,6 +918,7 @@ setInterval(() => {
 </script>
 </body>
 </html>
+
 
 
 
