@@ -276,6 +276,7 @@
     </div>
 
     <div id="info" class="muted" style="margin-top:10px;"></div>
+    <div id="gesamtZeit" class="muted" style="margin-top:4px;"></div>
   </div>
 </div>
 
@@ -316,6 +317,8 @@
 <button id="logoutBtn" class="logout-btn" title="Abmelden">Abmelden</button>
 
 <script type="module">
+  let startZeitGesamt = null;
+  let klassenDauer = {}; // Klasse → { start: ms, dauer: ms }
   // --- Firebase Config ---
   const firebaseConfig = {
     apiKey: "AIzaSyCuLVnVCnpc1JPO5eRsUpwOdTjacZ6cgso",
@@ -502,6 +505,34 @@ onValue(ref(db, "steuerung"), (snap) => {
     `;
   }
 
+  function formatTime(ms) {
+  const s = Math.floor(ms / 1000);
+  const m = Math.floor(s / 60);
+  const h = Math.floor(m / 60);
+
+  if (h === 0) return `${m % 60}m ${s % 60}s`;
+  return `${h}h ${m % 60}m ${s % 60}s`;
+}
+
+function stoppeAktuelleKlasse() {
+  const k = klassen[pos];
+  if (!k) return;
+
+  if (!klassenDauer[k]) klassenDauer[k] = { start: null, dauer: 0 };
+
+  if (klassenDauer[k].start) {
+    klassenDauer[k].dauer += Date.now() - klassenDauer[k].start;
+    klassenDauer[k].start = null;
+  }
+}
+
+function starteNeueKlasse() {
+  const k = klassen[pos];
+  if (!k) return;
+
+  if (!klassenDauer[k]) klassenDauer[k] = { start: Date.now(), dauer: 0 };
+  else klassenDauer[k].start = Date.now();
+}
   function aktualisiereKarten() {
     // Aktuell
     const curRaw = initialized ? (klassen[pos] ?? "") : "";
@@ -577,6 +608,18 @@ onValue(ref(db, "steuerung"), (snap) => {
 
       div.appendChild(label);
       div.appendChild(pill);
+      
+      // Zeit anzeigen – rechts, dezent
+      const zeitSpan = document.createElement("span");
+      zeitSpan.style.marginLeft = "auto";
+      zeitSpan.style.opacity = "0.7";
+      zeitSpan.style.fontSize = "13px";
+      
+      if (klassenDauer[k] && klassenDauer[k].dauer > 0) {
+        zeitSpan.textContent = formatTime(klassenDauer[k].dauer);
+      }
+      
+      div.appendChild(zeitSpan);
 
       // Direkt zu Klasse springen
       div.onclick = async () => {
@@ -637,8 +680,12 @@ onValue(ref(db, "steuerung"), (snap) => {
     }
     if (!initialized) {
       initialized = true;
+      startZeitGesamt = Date.now();
+      starteNeueKlasse();
     } else {
+      stoppeAktuelleKlasse();
       if (pos < klassen.length - 1) pos++;
+      starteNeueKlasse();
     }
     await speichereSteuerung();
     await schreibeAnzeige();
@@ -652,7 +699,7 @@ onValue(ref(db, "steuerung"), (snap) => {
 
   prevBtn.onclick = async () => {
     if (!initialized || klassen.length === 0) return;
-    if (pos > 0) pos--;
+    if (pos > 0) stoppeAktuelleKlasse();pos--;starteNeueKlasse();
     await speichereSteuerung();
     await schreibeAnzeige();
     aktualisiereKarten();
@@ -752,9 +799,21 @@ onValue(ref(db, "steuerung"), (snap) => {
     if (startNextBtn.disabled) return;
     startNextBtn.click();
   });
+
+setInterval(() => {
+  if (!initialized || !startZeitGesamt) return;
+
+  const ms = Date.now() - startZeitGesamt;
+  const el = document.getElementById("gesamtZeit");
+  if (el) el.textContent = "Gesamtzeit: " + formatTime(ms);
+
+  // Klassenliste neu zeichnen, damit Klasse live hochzählt
+  aktualisiereKlassenListe();
+}, 1000);
 </script>
 </body>
 </html>
+
 
 
 
