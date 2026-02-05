@@ -767,27 +767,49 @@ function starteNeueKlasse() {
   };
 
 document.addEventListener("DOMContentLoaded", () => {
-  // Sicherheitscheck: Button vorhanden?
   const btn = document.getElementById("exportBtn");
   if (!btn) return;
 
   btn.onclick = () => {
-    const lines = ["Dauer (HH:MM:SS)"];
+    // 1) Dateiname erzeugen (Monat + Jahr)
+    const monate = [
+      "Jänner","Februar","März","April","Mai","Juni",
+      "Juli","August","September","Oktober","November","Dezember"
+    ];
 
+    const jetzt = new Date();
+    const monatName = monate[jetzt.getMonth()];
+    const jahr = jetzt.getFullYear();
+
+    const dateiname = `gvp-konferenzzeiten_${monatName}_${jahr}.csv`;
+
+    // 2) CSV-Header (nur 2 Spalten)
+    const lines = ["Klasse;Dauer (HH:MM:SS)"];
+
+    // 3) Daten für jede Klasse
     klassen.forEach(k => {
-      const totalMs = effektiveKlassenMs(k);           // <- nutzt deine Funktion
-      const totalSec = Math.floor(totalMs / 1000);
-      const hms = formatHMS(totalMs);                  // <- nutzt deine Funktion (HH:MM:SS)
-      lines.push(`${k};${totalSec};${hms}`);
+      const totalMs = effektiveKlassenMs(k);
+      const hms = formatHMS(totalMs);
+      lines.push(`${k};${hms}`);
     });
 
+    // 4) Gesamtzeit hinzufügen
+    let gesamtZeitMs = 0;
+    klassen.forEach(k => {
+      gesamtZeitMs += effektiveKlassenMs(k);
+    });
+
+    const gesamtZeitHMS = formatHMS(gesamtZeitMs);
+    lines.push(`Gesamtzeit;${gesamtZeitHMS}`);
+
+    // 5) CSV erzeugen
     const csv = lines.join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
 
     const a = document.createElement("a");
     a.href = url;
-    a.download = "konferenzzeiten.csv";
+    a.download = dateiname;
     a.click();
 
     URL.revokeObjectURL(url);
@@ -875,6 +897,7 @@ setInterval(() => {
 </script>
 </body>
 </html>
+
 
 
 
