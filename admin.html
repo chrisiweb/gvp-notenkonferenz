@@ -531,6 +531,13 @@ function formatHMS(ms) {
 
   return `${hh}:${mm}:${ss}`;
 }
+
+function effektiveKlassenMs(klasse) {
+  const rec = klassenDauer[klasse];
+  if (!rec) return 0;
+  const laufend = rec.start ? (Date.now() - rec.start) : 0;
+  return rec.dauer + laufend;
+}
 function stoppeAktuelleKlasse() {
   const k = klassen[pos];
   if (!k) return;
@@ -632,8 +639,9 @@ function starteNeueKlasse() {
       zeitSpan.style.opacity = "0.7";
       zeitSpan.style.fontSize = "13px";
       
-      if (klassenDauer[k] && klassenDauer[k].dauer > 0) {
-        zeitSpan.textContent = formatTime(klassenDauer[k].dauer);
+      const totalMs = effektiveKlassenMs(k);
+      if (totalMs > 0) {
+        zeitSpan.textContent = formatTime(totalMs);
       }
       
       div.appendChild(zeitSpan);
@@ -757,28 +765,35 @@ function starteNeueKlasse() {
     zeigeInfo();
     aktualisiereKlassenListe();
   };
-exportBtn.onclick = () => {
-  const lines = ["Klasse;Dauer (Sekunden);Dauer (HH:MM:SS)"];
 
-  klassen.forEach(k => {
-    const totalMs = effektiveKlassenMs(k);
-    const totalSec = Math.floor(totalMs / 1000);
-    const hms = formatHMS(totalMs);
-    lines.push(`${k};${totalSec};${hms}`);
-  });
+document.addEventListener("DOMContentLoaded", () => {
+  // Sicherheitscheck: Button vorhanden?
+  const btn = document.getElementById("exportBtn");
+  if (!btn) return;
 
-  const csv = lines.join("\n");
+  btn.onclick = () => {
+    const lines = ["Klasse;Dauer (Sekunden);Dauer (HH:MM:SS)"];
 
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
+    klassen.forEach(k => {
+      const totalMs = effektiveKlassenMs(k);           // <- nutzt deine Funktion
+      const totalSec = Math.floor(totalMs / 1000);
+      const hms = formatHMS(totalMs);                  // <- nutzt deine Funktion (HH:MM:SS)
+      lines.push(`${k};${totalSec};${hms}`);
+    });
 
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "konferenzzeiten.csv";
-  a.click();
+    const csv = lines.join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
 
-  URL.revokeObjectURL(url);
-};
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "konferenzzeiten.csv";
+    a.click();
+
+    URL.revokeObjectURL(url);
+  };
+});
+  
   // --- Modal öffnen/schließen ---
   function openListEditor() {
     editorTextarea.value = klassen.join("\n");
@@ -860,6 +875,7 @@ setInterval(() => {
 </script>
 </body>
 </html>
+
 
 
 
