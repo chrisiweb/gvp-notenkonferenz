@@ -914,20 +914,36 @@ lines.push(`Gesamtzeit;${gesamtHMS}`);
     if (startNextBtn.disabled) return;
     startNextBtn.click();
   });
+let lastTick = 0;
 
-setInterval(() => {
-  if (!initialized || !startZeitGesamt) return;
+function timerLoop(ts) {
+  // ts = performance.now()
+  if (initialized && startZeitGesamt) {
+    if (ts - lastTick >= 950) { // nahezu 1 Sekunde
+      lastTick = ts;
 
-  const ms = Date.now() - startZeitGesamt;
-  const el = document.getElementById("gesamtZeit");
-  if (el) el.textContent = "Gesamtzeit: " + formatTime(ms);
+      // Gesamtzeit aktualisieren
+      const gesamtEl = document.getElementById("gesamtZeit");
+      if (gesamtEl) {
+        const ms = Date.now() - startZeitGesamt;
+        gesamtEl.textContent = "Gesamtzeit: " + formatTime(ms);
+      }
 
-  // Klassenliste neu zeichnen, damit Klasse live hochzählt
-  aktualisiereKlassenListe();
-}, 1000);
+      // Klassenliste live aktualisieren (für Sekundenzähler)
+      aktualisiereKlassenListe();
+    }
+  }
+
+  // Loop fortsetzen
+  requestAnimationFrame(timerLoop);
+}
+
+requestAnimationFrame(timerLoop);
+
 </script>
 </body>
 </html>
+
 
 
 
