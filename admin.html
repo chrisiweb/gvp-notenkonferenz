@@ -339,7 +339,23 @@
 
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-  import { getDatabase, ref, get, set, update, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+  import { getDatabase, ref, get, set, update, onValue, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+
+  // Serverzeit ermitteln
+  async function holeServerZeitOffset() {
+    const offsetRef = ref(db, ".info/serverTimeOffset");
+    const snap = await get(offsetRef);
+    const offset = snap.val() || 0;
+    return offset; // Differenz in ms: serverZeit = Date.now() + offset
+  }
+  
+  function serverNow() {
+    return Date.now() + serverOffset;
+  }
+
+  let serverOffset = 0;
+  holeServerZeitOffset().then(v => serverOffset = v);
 
   const app  = initializeApp(firebaseConfig);
   const auth = getAuth(app);
@@ -561,7 +577,10 @@ async function stoppeAktuelleKlasse() {
     klassenDauer[k].dauer += Date.now() - klassenDauer[k].start;
     klassenDauer[k].start = null;
 
-    await update(ref(db, "zeiten/" + k), klassenDauer[k]);
+  await update(ref(db, "zeiten/" + k), {
+    start: serverTimestamp(),
+    dauer: klassenDauer[k].dauer
+  });
   }
 }
 
@@ -575,7 +594,10 @@ async function starteNeueKlasse() {
     klassenDauer[k].start = Date.now();
   }
 
-  await update(ref(db, "zeiten/" + k), klassenDauer[k]);
+  await update(ref(db, "zeiten/" + k), {
+    start: serverTimestamp(),
+    dauer: klassenDauer[k].dauer
+  });
 }
   function aktualisiereKarten() {
     // Aktuell
@@ -925,7 +947,7 @@ function timerLoop(ts) {
       // Gesamtzeit aktualisieren
       const gesamtEl = document.getElementById("gesamtZeit");
       if (gesamtEl) {
-        const ms = Date.now() - startZeitGesamt;
+        const ms = (serverNow() - rec.start) + rec.dauer;
         gesamtEl.textContent = "Gesamtzeit: " + formatTime(ms);
       }
 
@@ -943,6 +965,7 @@ requestAnimationFrame(timerLoop);
 </script>
 </body>
 </html>
+
 
 
 
