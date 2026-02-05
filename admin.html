@@ -153,16 +153,6 @@
     .logout-btn:hover { background: #111827; border-color: #475569; }
     .logout-btn:active { transform: translateY(1px); }
 
-    /* --- Responsive Verbesserungen --- */
-    @media (max-width: 860px) {
-      .box { padding: 14px; border-radius: 10px; }
-      .row-space { gap: 10px; align-items: stretch; }
-      .big-button {
-        min-width: 0;
-        min-height: 72px;
-        font-size: 20px !important;
-        padding: 16px 20px !important;
-      }
       /* Deaktivierter Button: grau & nicht klickbar */
       button:disabled {
         background: #4b5563 !important; /* gedämpftes Grau */
@@ -180,6 +170,17 @@
       .card .value { font-size: clamp(24px, 6vw, 48px); }
       .card .room  { font-size: clamp(13px, 2.8vw, 18px); }
     }
+    
+    /* --- Responsive Verbesserungen --- */
+    @media (max-width: 860px) {
+      .box { padding: 14px; border-radius: 10px; }
+      .row-space { gap: 10px; align-items: stretch; }
+      .big-button {
+        min-width: 0;
+        min-height: 72px;
+        font-size: 20px !important;
+        padding: 16px 20px !important;
+      }
 
     @media (max-width: 640px) {
       /* Spalten untereinander */
@@ -746,6 +747,7 @@ onValue(ref(db, "steuerung"), (snap) => {
 </script>
 </body>
 </html>
+
 
 
 
