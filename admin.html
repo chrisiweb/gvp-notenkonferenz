@@ -812,6 +812,12 @@ startNextBtn.onclick = async () => {
     zeigeInfo();
     aktualisiereKlassenListe();
 
+    
+  // 5) Button deaktivieren + Text ändern
+  startNextBtn.textContent = "Konferenz beendet";
+  startNextBtn.disabled = true;
+  startNextBtn.setAttribute("aria-disabled", "true");
+
     return; // Ende – NICHT weitermachen
   }
 
@@ -1034,6 +1040,7 @@ requestAnimationFrame(timerLoop);
 </script>
 </body>
 </html>
+
 
 
 
