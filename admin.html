@@ -795,8 +795,7 @@ document.addEventListener("DOMContentLoaded", () => {
 klassen.forEach(k => {
   const totalMs = effektiveKlassenMs(k);
   const hms = formatHMS(totalMs);
-  const excelTime = (totalMs / 1000) / 86400;
-  lines.push(`${k};${excelTime}`);
+  lines.push(`${k};${hms}`);
 });
 
     // 4) Gesamtzeit als Formel – NICHT als Wert!
@@ -908,6 +907,7 @@ setInterval(() => {
 </script>
 </body>
 </html>
+
 
 
 
