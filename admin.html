@@ -503,14 +503,22 @@ onValue(ref(db, "steuerung"), (snap) => {
   }
 
   function aktualisiereKarten() {
-    const a = initialized ? (klassen[pos] ?? "—") : "—";
-    const v = initialized ? (klassen[pos + 1] ?? "—") : "—";
+    // Aktuell
+    const curRaw = initialized ? (klassen[pos] ?? "") : "";
+    const hasCur = initialized && typeof curRaw === "string" && curRaw.trim().length > 0;
+    const a = hasCur ? curRaw : "—";
     cardAktuell.textContent = a;
-    cardVorb.textContent    = v;
-
-    // Räume in der Admin-Vorschau
-    const aRoom = (initialized && a && typeof a === "string") ? ((pos % 2 === 0) ? raum1 : raum2) : "";
-    const vRoom = (initialized && v && typeof v === "string") ? (((pos + 1) % 2 === 0) ? raum1 : raum2) : "";
+  
+    // In Vorbereitung (nächste)
+    const nextRaw = initialized ? (klassen[pos + 1] ?? "") : "";
+    const hasNext = initialized && typeof nextRaw === "string" && nextRaw.trim().length > 0;
+    const v = hasNext ? nextRaw : "—";
+    cardVorb.textContent = v;
+  
+    // Räume in der Admin‑Vorschau (nur zeigen, wenn es die jeweilige Klasse wirklich gibt)
+    const aRoom = hasCur ? ((pos % 2 === 0) ? raum1 : raum2) : "";
+    const vRoom = hasNext ? (((pos + 1) % 2 === 0) ? raum1 : raum2) : "";
+  
     cardAktuellRoom.textContent = aRoom ? `(Raum: ${aRoom})` : "";
     cardVorbRoom.textContent    = vRoom ? `(Raum: ${vRoom})` : "";
   }
@@ -747,6 +755,7 @@ onValue(ref(db, "steuerung"), (snap) => {
 </script>
 </body>
 </html>
+
 
 
 
