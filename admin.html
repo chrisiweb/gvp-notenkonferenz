@@ -568,10 +568,15 @@ function formatHMS(ms) {
   const m = Math.floor(s / 60);
   const h = Math.floor(m / 60);
 
-  const hh = String(h).padStart(2, "0");
   const mm = String(m % 60).padStart(2, "0");
   const ss = String(s % 60).padStart(2, "0");
 
+  if (h === 0) {
+    // keine Stunden anzeigen
+    return `${mm}:${ss}`;
+  }
+
+  const hh = String(h).padStart(2, "0");
   return `${hh}:${mm}:${ss}`;
 }
 
@@ -639,9 +644,22 @@ async function starteNeueKlasse() {
     cardVorbRoom.textContent    = vRoom ? `(Raum: ${vRoom})` : "";
   }
 
+
   function aktualisiereStartNextLabel() {
-    startNextBtn.textContent = initialized ? "Nächste Klasse" : "Konferenz starten";
+    if (!initialized) {
+      startNextBtn.textContent = "Konferenz starten";
+      return;
+    }
+  
+    const istLetzte = (klassen.length > 0 && pos >= klassen.length - 1);
+  
+    if (istLetzte) {
+      startNextBtn.textContent = "Konferenz beenden";
+    } else {
+      startNextBtn.textContent = "Nächste Klasse";
+    }
   }
+
 
   function aktualisiereStartNextState() {
     // Wenn noch nicht gestartet: Button nur aktivieren, wenn es überhaupt Klassen gibt.
@@ -766,32 +784,63 @@ div.onclick = async () => {
   }
 
   // --- Bedienlogik ---
-  startNextBtn.onclick = async () => {
-    if (klassen.length === 0) {
-      alert("Bitte zuerst die Klassenliste eingeben (eine Klasse pro Zeile).");
-      return;
-    }
-    if (!initialized) {
-      initialized = true;
-      startZeitGesamt = serverNow();
-      await update(ref(db, "meta"), {
-        startZeitGesamt: serverTimestamp()
-      });
-      await starteNeueKlasse();
-    } else {
-      await stoppeAktuelleKlasse();
-      if (pos < klassen.length - 1) pos++;
-      await starteNeueKlasse();
-    }
-    await speichereSteuerung();
-    await schreibeAnzeige();
+startNextBtn.onclick = async () => {
+
+  // --- NEU: Wenn letzte Klasse → Konferenz beenden ---
+  if (initialized && pos >= klassen.length - 1) {
+
+    // 1) aktuellen Timer stoppen
+    await stoppeAktuelleKlasse();
+
+    // 2) Anzeige leeren (aber Zeiten nicht!)
+    const now = serverNow();
+    await update(ref(db, "anzeige"), {
+      aktuell: "–",
+      vorbereitung: "–",
+      aktuellRaum: null,
+      vorbereitungRaum: null,
+      aktualisiertAm: now,
+      updatedAt: now
+    });
+
+    // 3) UI zurücksetzen
+    initialized = false;
+
     aktualisiereKarten();
     aktualisiereStartNextLabel();
     aktualisiereStartNextState();
     zeigeInfo();
     aktualisiereKlassenListe();
-    requestAnimationFrame(keepActiveAndNextInView);
-  };
+
+    return; // Ende – NICHT weitermachen
+  }
+
+  // --- bisherigen Code unverändert lassen ---
+  if (klassen.length === 0) {
+    alert("Bitte zuerst die Klassenliste eingeben (eine Klasse pro Zeile).");
+    return;
+  }
+  if (!initialized) {
+    initialized = true;
+    startZeitGesamt = serverNow();
+    await update(ref(db, "meta"), {
+      startZeitGesamt: serverTimestamp()
+    });
+    await starteNeueKlasse();
+  } else {
+    await stoppeAktuelleKlasse();
+    if (pos < klassen.length - 1) pos++;
+    await starteNeueKlasse();
+  }
+  await speichereSteuerung();
+  await schreibeAnzeige();
+  aktualisiereKarten();
+  aktualisiereStartNextLabel();
+  aktualisiereStartNextState();
+  zeigeInfo();
+  aktualisiereKlassenListe();
+  requestAnimationFrame(keepActiveAndNextInView);
+};
 
   prevBtn.onclick = async () => {
     if (!initialized || klassen.length === 0) return;
@@ -861,7 +910,7 @@ btn.onclick = () => {
   const dateiname = `gvp-konferenzzeiten_${monatName}_${jahr}.csv`;
 
   // 2) CSV-Header
-  const lines = ["Klasse;Dauer (HH:MM:SS)"];
+  const lines = ["Klasse;Dauer"];
 
   // 3) Einzelzeiten + Summe (auf Basis des festen Zeitpunkts)
   let sumMs = 0;
@@ -985,6 +1034,7 @@ requestAnimationFrame(timerLoop);
 </script>
 </body>
 </html>
+
 
 
 
