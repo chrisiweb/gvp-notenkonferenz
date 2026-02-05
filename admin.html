@@ -647,21 +647,28 @@ function starteNeueKlasse() {
       div.appendChild(zeitSpan);
 
       // Direkt zu Klasse springen
-      div.onclick = async () => {
-        if (i === pos) return;
-        const ok = confirm("Möchtest du die aktuelle Klasse wirklich ändern?");
-        if (!ok) return;
-        pos = i;
-        initialized = true;
-        await speichereSteuerung();
-        await schreibeAnzeige();
-        aktualisiereKarten();
-        aktualisiereStartNextLabel();
-        aktualisiereStartNextState();
-        zeigeInfo();
-        aktualisiereKlassenListe();
-        keepActiveAndNextInView();
-      };
+div.onclick = async () => {
+  if (i === pos) return;
+
+  const ok = confirm("Möchtest du die aktuelle Klasse wirklich ändern?");
+  if (!ok) return;
+
+  // --- TIMER KORREKT ÜBERGEBEN ---
+  stoppeAktuelleKlasse();   // alte Klasse stoppen
+  pos = i;                  // neue Klasse setzen
+  initialized = true;       // Konferenz läuft
+  starteNeueKlasse();       // neue Klasse starten
+
+  // --- SPEICHERN & UI ---
+  await speichereSteuerung();
+  await schreibeAnzeige();
+  aktualisiereKarten();
+  aktualisiereStartNextLabel();
+  aktualisiereStartNextState();
+  zeigeInfo();
+  aktualisiereKlassenListe();
+  keepActiveAndNextInView();
+};
       klassenList.appendChild(div);
     });
   }
@@ -788,7 +795,8 @@ document.addEventListener("DOMContentLoaded", () => {
 klassen.forEach(k => {
   const totalMs = effektiveKlassenMs(k);
   const hms = formatHMS(totalMs);
-  lines.push(`${k};${hms}`);
+  const excelTime = (totalMs / 1000) / 86400;
+  lines.push(`${k};${excelTime}`);
 });
 
     // 4) Gesamtzeit als Formel – NICHT als Wert!
@@ -800,7 +808,7 @@ klassen.forEach(k => {
     //
     const firstRow = 2;
     const lastRow = 1 + klassen.length;
-    const sumFormula = `=SUM(B${firstRow}:B${lastRow})`;
+    const sumFormula = `=SUMME(B${firstRow}:B${lastRow})`;
 
     lines.push(`Gesamtzeit;${sumFormula}`);
 
@@ -900,6 +908,7 @@ setInterval(() => {
 </script>
 </body>
 </html>
+
 
 
 
