@@ -266,7 +266,10 @@
 
     <div class="row-space">
       <div class="row-left">
-        <button id="editBtn" class="btn-ghost" title="Klassenliste bearbeiten und speichern">Klassenliste/Räume bearbeiten</button>
+        <button id="editBtn" class="btn-ghost" title="Klassenliste bearbeiten und speichern">Klassenliste/Räume bearbeiten</button>        
+        <button id="exportBtn" class="btn-ghost" style="border-color:#22c55e;color:#22c55e;">
+          Zeiten exportieren
+        </button>
         <span id="saveHint" class="saving" aria-live="polite"></span>
       </div>
       <div class="row-left">
@@ -377,8 +380,9 @@ onValue(ref(db, "steuerung"), (snap) => {
   const cardVorbRoom    = document.getElementById("cardVorbRoom");
   const loginError = document.getElementById("loginError");
   const editBtn    = document.getElementById("editBtn");
-  const logoutBtn  = document.getElementById("logoutBtn"); // Logout
-
+  const logoutBtn  = document.getElementById("logoutBtn");
+  const exportBtn = document.getElementById("exportBtn");
+  
   // Modal
   const listModal = document.getElementById("listModal");
   const editorTextarea = document.getElementById("editorTextarea");
@@ -715,6 +719,11 @@ function starteNeueKlasse() {
     if (!confirm("Soll die Notenkonferenz wirklich neu gestartet werden?")) return;
     initialized = false;
     pos = 0;
+    // --- Zeiten löschen ---
+    startZeitGesamt = null;
+    klassenDauer = {};
+    const gesamtEl = document.getElementById("gesamtZeit");
+    if (gesamtEl) gesamtEl.textContent = "";
     await speichereSteuerung();
     const now = Date.now();
     await update(ref(db, "anzeige"), {
@@ -731,7 +740,28 @@ function starteNeueKlasse() {
     zeigeInfo();
     aktualisiereKlassenListe();
   };
+exportBtn.onclick = () => {
+  const lines = ["Klasse;Dauer (Sekunden);Dauer (HH:MM:SS)"];
 
+  klassen.forEach(k => {
+    const totalMs = effektiveKlassenMs(k);
+    const totalSec = Math.floor(totalMs / 1000);
+    const hms = formatHMS(totalMs);
+    lines.push(`${k};${totalSec};${hms}`);
+  });
+
+  const csv = lines.join("\n");
+
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "konferenzzeiten.csv";
+  a.click();
+
+  URL.revokeObjectURL(url);
+};
   // --- Modal öffnen/schließen ---
   function openListEditor() {
     editorTextarea.value = klassen.join("\n");
@@ -813,6 +843,7 @@ setInterval(() => {
 </script>
 </body>
 </html>
+
 
 
 
