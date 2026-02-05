@@ -661,20 +661,20 @@ async function starteNeueKlasse() {
   }
 
 
-  function aktualisiereStartNextState() {
-    // Wenn noch nicht gestartet: Button nur aktivieren, wenn es überhaupt Klassen gibt.
-    if (!initialized) {
-      const hasClasses = Array.isArray(klassen) && klassen.length > 0;
-      startNextBtn.disabled = !hasClasses;
-      startNextBtn.setAttribute('aria-disabled', String(startNextBtn.disabled));
-      return;
-    }
-  
-    // Wenn gestartet: am Ende deaktivieren (pos auf letzter Index).
-    const istLetzte = klassen.length > 0 && pos >= klassen.length - 1;
-    startNextBtn.disabled = istLetzte;
-    startNextBtn.setAttribute('aria-disabled', String(istLetzte));
+function aktualisiereStartNextState() {
+  // Wenn nicht gestartet → nur aktivieren, wenn Klassen vorhanden
+  if (!initialized) {
+    const hasClasses = Array.isArray(klassen) && klassen.length > 0;
+    startNextBtn.disabled = !hasClasses;
+    startNextBtn.setAttribute('aria-disabled', String(startNextBtn.disabled));
+    return;
   }
+
+  // Wenn gestartet → NIE deaktivieren (Konferenz beenden muss möglich sein)
+  startNextBtn.disabled = false;
+  startNextBtn.setAttribute('aria-disabled', "false");
+}
+
   
   // --- Klickbare Liste rendern ---
   function aktualisiereKlassenListe() {
@@ -1034,6 +1034,7 @@ requestAnimationFrame(timerLoop);
 </script>
 </body>
 </html>
+
 
 
 
