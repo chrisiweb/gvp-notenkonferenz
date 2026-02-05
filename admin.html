@@ -806,21 +806,10 @@ klassen.forEach(k => {
 
 const gesamtHMS = formatHMS(sumMs);
 
-// --- Gesamtzeit als fertiger Text in HMS ---
+// --- 4) Gesamtzeit als fertiger Text in HMS ---
 lines.push(`Gesamtzeit;${gesamtHMS}`);
 
-    // 4) Gesamtzeit als Formel – NICHT als Wert!
-    //
-    //   → Klasse steht in Spalte A
-    //   → Dauer steht in Spalte B
-    //   → Erste Datenzeile = Zeile 2
-    //   → Letzte Klasse = Zeile 1 + klassen.length
-    //
-    const firstRow = 2;
-    const lastRow = 1 + klassen.length;
-    const sumFormula = `=SUMME(B${firstRow}:B${lastRow})`;
 
-    lines.push(`Gesamtzeit;${sumFormula}`);
 
     // 5) CSV erzeugen
     const csv = lines.join("\n");
@@ -918,4 +907,5 @@ setInterval(() => {
 </script>
 </body>
 </html>
+
 
