@@ -266,7 +266,7 @@
 
     <div class="row-space">
       <div class="row-left">
-        <button id="editBtn" class="btn-ghost" title="Klassenliste bearbeiten und speichern">Klassen/Räume bearbeiten</button>
+        <button id="editBtn" class="btn-ghost" title="Klassenliste bearbeiten und speichern">Klassenliste/Räume bearbeiten</button>        
         <span id="saveHint" class="saving" aria-live="polite"></span>
       </div>
       <div class="row-left">
@@ -276,13 +276,20 @@
     </div>
 
     <div id="info" class="muted" style="margin-top:10px;"></div>
+    <div id="gesamtZeit" class="muted" style="margin-top:4px;"></div>
+
+  <div style="margin-top:10px">
+    <button id="exportBtn" class="btn-ghost" style="border-color:#22c55e;color:#22c55e;">
+      Zeiten exportieren
+    </button>
+  </div>
   </div>
 </div>
 
 <!-- Modal: Klassenliste bearbeiten -->
 <div id="listModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-hidden="true">
   <div class="modal-content">
-    <h3 id="modalTitle">Klassen/Räume bearbeiten</h3>
+    <h3 id="modalTitle">Klassenliste/Räume bearbeiten</h3>
 
     <!-- Räume (kompakt) -->
     <div class="grid-two" style="margin-bottom:10px;">
@@ -316,6 +323,8 @@
 <button id="logoutBtn" class="logout-btn" title="Abmelden">Abmelden</button>
 
 <script type="module">
+  let startZeitGesamt = null;
+  let klassenDauer = {}; // Klasse → { start: ms, dauer: ms }
   // --- Firebase Config ---
   const firebaseConfig = {
     apiKey: "AIzaSyCuLVnVCnpc1JPO5eRsUpwOdTjacZ6cgso",
@@ -374,8 +383,9 @@ onValue(ref(db, "steuerung"), (snap) => {
   const cardVorbRoom    = document.getElementById("cardVorbRoom");
   const loginError = document.getElementById("loginError");
   const editBtn    = document.getElementById("editBtn");
-  const logoutBtn  = document.getElementById("logoutBtn"); // Logout
-
+  const logoutBtn  = document.getElementById("logoutBtn");
+  const exportBtn = document.getElementById("exportBtn");
+  
   // Modal
   const listModal = document.getElementById("listModal");
   const editorTextarea = document.getElementById("editorTextarea");
@@ -502,6 +512,51 @@ onValue(ref(db, "steuerung"), (snap) => {
     `;
   }
 
+  function formatTime(ms) {
+  const s = Math.floor(ms / 1000);
+  const m = Math.floor(s / 60);
+  const h = Math.floor(m / 60);
+
+  if (h === 0) return `${m % 60}m ${s % 60}s`;
+  return `${h}h ${m % 60}m ${s % 60}s`;
+}
+function formatHMS(ms) {
+  const s = Math.floor(ms / 1000);
+  const m = Math.floor(s / 60);
+  const h = Math.floor(m / 60);
+
+  const hh = String(h).padStart(2, "0");
+  const mm = String(m % 60).padStart(2, "0");
+  const ss = String(s % 60).padStart(2, "0");
+
+  return `${hh}:${mm}:${ss}`;
+}
+
+function effektiveKlassenMs(klasse) {
+  const rec = klassenDauer[klasse];
+  if (!rec) return 0;
+  const laufend = rec.start ? (Date.now() - rec.start) : 0;
+  return rec.dauer + laufend;
+}
+function stoppeAktuelleKlasse() {
+  const k = klassen[pos];
+  if (!k) return;
+
+  if (!klassenDauer[k]) klassenDauer[k] = { start: null, dauer: 0 };
+
+  if (klassenDauer[k].start) {
+    klassenDauer[k].dauer += Date.now() - klassenDauer[k].start;
+    klassenDauer[k].start = null;
+  }
+}
+
+function starteNeueKlasse() {
+  const k = klassen[pos];
+  if (!k) return;
+
+  if (!klassenDauer[k]) klassenDauer[k] = { start: Date.now(), dauer: 0 };
+  else klassenDauer[k].start = Date.now();
+}
   function aktualisiereKarten() {
     // Aktuell
     const curRaw = initialized ? (klassen[pos] ?? "") : "";
@@ -577,23 +632,43 @@ onValue(ref(db, "steuerung"), (snap) => {
 
       div.appendChild(label);
       div.appendChild(pill);
+      
+      // Zeit anzeigen – rechts, dezent
+      const zeitSpan = document.createElement("span");
+      zeitSpan.style.marginLeft = "auto";
+      zeitSpan.style.opacity = "0.7";
+      zeitSpan.style.fontSize = "13px";
+      
+      const totalMs = effektiveKlassenMs(k);
+      if (totalMs > 0) {
+        zeitSpan.textContent = formatTime(totalMs);
+      }
+      
+      div.appendChild(zeitSpan);
 
       // Direkt zu Klasse springen
-      div.onclick = async () => {
-        if (i === pos) return;
-        const ok = confirm("Möchtest du die aktuelle Klasse wirklich ändern?");
-        if (!ok) return;
-        pos = i;
-        initialized = true;
-        await speichereSteuerung();
-        await schreibeAnzeige();
-        aktualisiereKarten();
-        aktualisiereStartNextLabel();
-        aktualisiereStartNextState();
-        zeigeInfo();
-        aktualisiereKlassenListe();
-        keepActiveAndNextInView();
-      };
+div.onclick = async () => {
+  if (i === pos) return;
+
+  const ok = confirm("Möchtest du die aktuelle Klasse wirklich ändern?");
+  if (!ok) return;
+
+  // --- TIMER KORREKT ÜBERGEBEN ---
+  stoppeAktuelleKlasse();   // alte Klasse stoppen
+  pos = i;                  // neue Klasse setzen
+  initialized = true;       // Konferenz läuft
+  starteNeueKlasse();       // neue Klasse starten
+
+  // --- SPEICHERN & UI ---
+  await speichereSteuerung();
+  await schreibeAnzeige();
+  aktualisiereKarten();
+  aktualisiereStartNextLabel();
+  aktualisiereStartNextState();
+  zeigeInfo();
+  aktualisiereKlassenListe();
+  keepActiveAndNextInView();
+};
       klassenList.appendChild(div);
     });
   }
@@ -637,8 +712,12 @@ onValue(ref(db, "steuerung"), (snap) => {
     }
     if (!initialized) {
       initialized = true;
+      startZeitGesamt = Date.now();
+      starteNeueKlasse();
     } else {
+      stoppeAktuelleKlasse();
       if (pos < klassen.length - 1) pos++;
+      starteNeueKlasse();
     }
     await speichereSteuerung();
     await schreibeAnzeige();
@@ -652,7 +731,11 @@ onValue(ref(db, "steuerung"), (snap) => {
 
   prevBtn.onclick = async () => {
     if (!initialized || klassen.length === 0) return;
-    if (pos > 0) pos--;
+    if (pos > 0) {
+      stoppeAktuelleKlasse();
+      pos--;
+      starteNeueKlasse();
+    }
     await speichereSteuerung();
     await schreibeAnzeige();
     aktualisiereKarten();
@@ -668,6 +751,11 @@ onValue(ref(db, "steuerung"), (snap) => {
     if (!confirm("Soll die Notenkonferenz wirklich neu gestartet werden?")) return;
     initialized = false;
     pos = 0;
+    // --- Zeiten löschen ---
+    startZeitGesamt = null;
+    klassenDauer = {};
+    const gesamtEl = document.getElementById("gesamtZeit");
+    if (gesamtEl) gesamtEl.textContent = "";
     await speichereSteuerung();
     const now = Date.now();
     await update(ref(db, "anzeige"), {
@@ -685,6 +773,70 @@ onValue(ref(db, "steuerung"), (snap) => {
     aktualisiereKlassenListe();
   };
 
+document.addEventListener("DOMContentLoaded", () => {
+  const btn = document.getElementById("exportBtn");
+  if (!btn) return;
+
+  btn.onclick = () => {
+    // 1) Dateiname: gvp-konferenzzeiten_Monat_Jahr.csv
+    const monate = [
+      "Jänner","Februar","März","April","Mai","Juni",
+      "Juli","August","September","Oktober","November","Dezember"
+    ];
+    const jetzt = new Date();
+    const monatName = monate[jetzt.getMonth()];
+    const jahr = jetzt.getFullYear();
+    const dateiname = `gvp-konferenzzeiten_${monatName}_${jahr}.csv`;
+
+    // 2) CSV-Header – nur 2 Spalten
+    const lines = ["Klasse;Dauer (HH:MM:SS)"];
+
+    // 3) Klassenzeiten eintragen
+klassen.forEach(k => {
+  const totalMs = effektiveKlassenMs(k);
+  const hms = formatHMS(totalMs);
+  lines.push(`${k};${hms}`);
+});
+
+// --- Gesamtzeit selbst berechnen (JS) ---
+let sumMs = 0;
+klassen.forEach(k => {
+  sumMs += effektiveKlassenMs(k);
+});
+
+const gesamtHMS = formatHMS(sumMs);
+
+// --- Gesamtzeit als fertiger Text in HMS ---
+lines.push(`Gesamtzeit;${gesamtHMS}`);
+
+    // 4) Gesamtzeit als Formel – NICHT als Wert!
+    //
+    //   → Klasse steht in Spalte A
+    //   → Dauer steht in Spalte B
+    //   → Erste Datenzeile = Zeile 2
+    //   → Letzte Klasse = Zeile 1 + klassen.length
+    //
+    const firstRow = 2;
+    const lastRow = 1 + klassen.length;
+    const sumFormula = `=SUMME(B${firstRow}:B${lastRow})`;
+
+    lines.push(`Gesamtzeit;${sumFormula}`);
+
+    // 5) CSV erzeugen
+    const csv = lines.join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+
+    // 6) Download starten
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = dateiname;
+    a.click();
+
+    URL.revokeObjectURL(url);
+  };
+});
+  
   // --- Modal öffnen/schließen ---
   function openListEditor() {
     editorTextarea.value = klassen.join("\n");
@@ -752,6 +904,17 @@ onValue(ref(db, "steuerung"), (snap) => {
     if (startNextBtn.disabled) return;
     startNextBtn.click();
   });
+
+setInterval(() => {
+  if (!initialized || !startZeitGesamt) return;
+
+  const ms = Date.now() - startZeitGesamt;
+  const el = document.getElementById("gesamtZeit");
+  if (el) el.textContent = "Gesamtzeit: " + formatTime(ms);
+
+  // Klassenliste neu zeichnen, damit Klasse live hochzählt
+  aktualisiereKlassenListe();
+}, 1000);
 </script>
 </body>
 </html>
