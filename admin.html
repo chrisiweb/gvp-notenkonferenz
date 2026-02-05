@@ -575,12 +575,14 @@ function formatHMS(ms) {
   return `${hh}:${mm}:${ss}`;
 }
 
-function effektiveKlassenMs(klasse) {
+function effektiveKlassenMs(klasse, nowOverride) {
   const rec = klassenDauer[klasse];
   if (!rec) return 0;
-  const laufend = rec.start ? (serverNow() - rec.start) : 0;
-  return rec.dauer + laufend;
+  const now = (typeof nowOverride === "number") ? nowOverride : serverNow();
+  const laufend = rec.start ? (now - rec.start) : 0;
+  return (rec.dauer || 0) + laufend;
 }
+
 async function stoppeAktuelleKlasse() {
   const k = klassen[pos];
   if (!k) return;
@@ -868,7 +870,12 @@ klassen.forEach(k => {
 // --- Gesamtzeit selbst berechnen (JS) ---
 let sumMs = 0;
 klassen.forEach(k => {
-  sumMs += effektiveKlassenMs(k);
+const gesamtMs = klassen.reduce((acc, k) => {
+  return acc + effektiveKlassenMs(k);
+}, 0);
+
+const gesamtHMS = formatHMS(gesamtMs);
+lines.push(`Gesamtzeit;${gesamtHMS}`);
 });
 
 const gesamtHMS = formatHMS(sumMs);
@@ -878,19 +885,18 @@ lines.push(`Gesamtzeit;${gesamtHMS}`);
 
 
 
-    // 5) CSV erzeugen
-    const csv = lines.join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
 
-    // 6) Download starten
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = dateiname;
-    a.click();
+  // 5) CSV erzeugen & downloaden
+  const csv = lines.join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = dateiname;
+  a.click();
+  URL.revokeObjectURL(url);
+};
 
-    URL.revokeObjectURL(url);
-  };
 });
   
   // --- Modal öffnen/schließen ---
@@ -991,4 +997,5 @@ requestAnimationFrame(timerLoop);
 </script>
 </body>
 </html>
+
 
