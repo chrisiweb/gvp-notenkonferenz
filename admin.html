@@ -846,45 +846,33 @@ document.addEventListener("DOMContentLoaded", () => {
   const btn = document.getElementById("exportBtn");
   if (!btn) return;
 
-  btn.onclick = () => {
-    // 1) Dateiname: gvp-konferenzzeiten_Monat_Jahr.csv
-    const monate = [
-      "Jänner","Februar","März","April","Mai","Juni",
-      "Juli","August","September","Oktober","November","Dezember"
-    ];
-    const jetzt = new Date();
-    const monatName = monate[jetzt.getMonth()];
-    const jahr = jetzt.getFullYear();
-    const dateiname = `gvp-konferenzzeiten_${monatName}_${jahr}.csv`;
+btn.onclick = () => {
+  // 0) "Now" einmal einfrieren, damit alles konsistent ist
+  const nowFixed = serverNow();
 
-    // 2) CSV-Header – nur 2 Spalten
-    const lines = ["Klasse;Dauer (HH:MM:SS)"];
+  // 1) Dateiname
+  const monate = [
+    "Jänner","Februar","März","April","Mai","Juni",
+    "Juli","August","September","Oktober","November","Dezember"
+  ];
+  const jetzt = new Date();
+  const monatName = monate[jetzt.getMonth()];
+  const jahr = jetzt.getFullYear();
+  const dateiname = `gvp-konferenzzeiten_${monatName}_${jahr}.csv`;
 
-    // 3) Klassenzeiten eintragen
-klassen.forEach(k => {
-  const totalMs = effektiveKlassenMs(k);
-  const hms = formatHMS(totalMs);
-  lines.push(`${k};${hms}`);
-});
+  // 2) CSV-Header
+  const lines = ["Klasse;Dauer (HH:MM:SS)"];
 
-// --- Gesamtzeit selbst berechnen (JS) ---
-let sumMs = 0;
-klassen.forEach(k => {
-const gesamtMs = klassen.reduce((acc, k) => {
-  return acc + effektiveKlassenMs(k);
-}, 0);
+  // 3) Einzelzeiten + Summe (auf Basis des festen Zeitpunkts)
+  let sumMs = 0;
+  klassen.forEach(k => {
+    const totalMs = effektiveKlassenMs(k, nowFixed); // <-- wichtiger 2. Parameter
+    sumMs += totalMs;
+    lines.push(`${k};${formatHMS(totalMs)}`);
+  });
 
-const gesamtHMS = formatHMS(gesamtMs);
-lines.push(`Gesamtzeit;${gesamtHMS}`);
-});
-
-const gesamtHMS = formatHMS(sumMs);
-
-// --- 4) Gesamtzeit als fertiger Text in HMS ---
-lines.push(`Gesamtzeit;${gesamtHMS}`);
-
-
-
+  // 4) Gesamtzeit = Summe der Einzelzeiten (nur EINMAL anhängen)
+  lines.push(`Gesamtzeit;${formatHMS(sumMs)}`);
 
   // 5) CSV erzeugen & downloaden
   const csv = lines.join("\n");
@@ -997,5 +985,6 @@ requestAnimationFrame(timerLoop);
 </script>
 </body>
 </html>
+
 
 
