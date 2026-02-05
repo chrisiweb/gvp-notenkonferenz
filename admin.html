@@ -771,42 +771,49 @@ document.addEventListener("DOMContentLoaded", () => {
   if (!btn) return;
 
   btn.onclick = () => {
-    // 1) Dateiname erzeugen (Monat + Jahr)
+    // 1) Dateiname: gvp-konferenzzeiten_Monat_Jahr.csv
     const monate = [
       "Jänner","Februar","März","April","Mai","Juni",
       "Juli","August","September","Oktober","November","Dezember"
     ];
-
     const jetzt = new Date();
     const monatName = monate[jetzt.getMonth()];
     const jahr = jetzt.getFullYear();
-
     const dateiname = `gvp-konferenzzeiten_${monatName}_${jahr}.csv`;
 
-    // 2) CSV-Header (nur 2 Spalten)
+    // 2) CSV-Header – nur 2 Spalten
     const lines = ["Klasse;Dauer (HH:MM:SS)"];
 
-    // 3) Daten für jede Klasse
-    klassen.forEach(k => {
-      const totalMs = effektiveKlassenMs(k);
-      const hms = formatHMS(totalMs);
-      lines.push(`${k};${hms}`);
-    });
+    // 3) Klassenzeiten eintragen
+klassen.forEach(k => {
+  const totalMs = effektiveKlassenMs(k);
+  const hms = formatHMS(totalMs);
 
-    // 4) Gesamtzeit hinzufügen
-    let gesamtZeitMs = 0;
-    klassen.forEach(k => {
-      gesamtZeitMs += effektiveKlassenMs(k);
-    });
+  // Zweite Spalte optisch auf ca. 120px verbreitern
+  const pad = "\u00A0".repeat(15);
 
-    const gesamtZeitHMS = formatHMS(gesamtZeitMs);
-    lines.push(`Gesamtzeit;${gesamtZeitHMS}`);
+  lines.push(`${k};${hms}${pad}`);
+});
+
+    // 4) Gesamtzeit als Formel – NICHT als Wert!
+    //
+    //   → Klasse steht in Spalte A
+    //   → Dauer steht in Spalte B
+    //   → Erste Datenzeile = Zeile 2
+    //   → Letzte Klasse = Zeile 1 + klassen.length
+    //
+    const firstRow = 2;
+    const lastRow = 1 + klassen.length;
+    const sumFormula = `=SUM(B${firstRow}:B${lastRow})`;
+
+    lines.push(`Gesamtzeit;${sumFormula}`);
 
     // 5) CSV erzeugen
     const csv = lines.join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
 
+    // 6) Download starten
     const a = document.createElement("a");
     a.href = url;
     a.download = dateiname;
@@ -897,6 +904,7 @@ setInterval(() => {
 </script>
 </body>
 </html>
+
 
 
 
