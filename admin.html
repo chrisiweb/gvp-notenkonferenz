@@ -916,85 +916,12 @@ document.addEventListener("DOMContentLoaded", () => {
   const btn = document.getElementById("exportBtn");
   if (!btn) return;
 
-btn.onclick = () => {
-  const nowFixed = serverNow();
+document.addEventListener("DOMContentLoaded", () => {
+  const btn = document.getElementById("exportBtn");
+  if (!btn) return;
 
-  // Daten sammeln (Klasse + Zeit in ms)
-  const data = klassen.map(k => ({ k, ms: effektiveKlassenMs(k, nowFixed) }));
-  if (!data.length) return;
-
-  // Maße
-  const margin = { top: 30, right: 24, bottom: 36, left: 60 };
-  const innerH = 360;
-  const barGap = 12;
-  const barW   = 28;
-  const innerW = data.length * (barW + barGap) - barGap;
-  const width  = innerW + margin.left + margin.right;
-  const height = innerH + margin.top + margin.bottom;
-
-  // Skalen
-  const maxMs = Math.max(...data.map(d => d.ms), 1);
-  const yScale = ms => margin.top + innerH - (ms / maxMs) * innerH;
-
-  // Hilfsformat
-  const fmt = (ms) => formatHMS(ms); // nutzt deine bestehende Funktion
-
-  // Y‑Ticks (0, 25, 50, 75, 100%)
-  const ticks = [0, 0.25, 0.5, 0.75, 1].map(t => Math.round(t * maxMs));
-
-  // SVG aufbauen
-  let svg = '';
-  svg += `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">`;
-  svg += `<title>Konferenzzeiten (Säulendiagramm)</title>`;
-  // Hintergrund (Dark)
-  svg += `<rect x="0" y="0" width="${width}" height="${height}" fill="#0b1020"/>`;
-
-  // Gitter + Y‑Achse
-  ticks.forEach(ms => {
-    const y = yScale(ms);
-    svg += `<line x1="${margin.left}" y1="${y}" x2="${width - margin.right}" y2="${y}" stroke="#223049" stroke-width="1" opacity="0.6"/>`;
-    svg += `<text x="${margin.left - 8}" y="${y + 4}" fill="#9fb3d1" font-family="system-ui,Segoe UI,Roboto,Arial" font-size="12" text-anchor="end">${fmt(ms)}</text>`;
-  });
-
-  // Balken
-  data.forEach((d, i) => {
-    const x = margin.left + i * (barW + barGap);
-    const y = yScale(d.ms);
-    const h = margin.top + innerH - y;
-    const labelInside = h >= 26;
-
-    // Balken
-    svg += `<rect x="${x}" y="${y}" width="${barW}" height="${h}" rx="4" fill="#22c55e"/>`;
-
-    // Klassenlabel: wenn Balken hoch genug → innen (dunkler Text), sonst darüber (heller Text)
-    if (labelInside) {
-      svg += `<text x="${x + barW/2}" y="${y + 18}" fill="#0b1020" font-family="system-ui,Segoe UI,Roboto,Arial" font-size="12" text-anchor="middle">${d.k}</text>`;
-      // Zeit optional innen knapp darunter
-      svg += `<text x="${x + barW/2}" y="${y + 32}" fill="#0b1020" font-family="system-ui,Segoe UI,Roboto,Arial" font-size="11" text-anchor="middle">${fmt(d.ms)}</text>`;
-    } else {
-      const ty = Math.max(12, y - 6);
-      svg += `<text x="${x + barW/2}" y="${ty}" fill="#eaf2ff" font-family="system-ui,Segoe UI,Roboto,Arial" font-size="12" text-anchor="middle">${d.k}</text>`;
-    }
-  });
-
-  // Rand/Frame der Plotfläche (dezent)
-  svg += `<rect x="${margin.left}" y="${margin.top}" width="${innerW}" height="${innerH}" fill="none" stroke="#334155" stroke-width="1"/>`;
-
-  svg += `</svg>`;
-
-  // Download
-  const monate = ["Jänner","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
-  const jetzt = new Date();
-  const dateiname = `gvp-konferenzzeiten_${monate[jetzt.getMonth()]}_${jetzt.getFullYear()}.svg`;
-
-  const blob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = dateiname;
-  a.click();
-  URL.revokeObjectURL(url);
-};
+  btn.onclick = () => { /* HIER ersetzen */ };
+});
 
 });
   
@@ -1205,6 +1132,7 @@ function runFireworks(durationMs = 5000) {
 </script>
 </body>
 </html>
+
 
 
 
