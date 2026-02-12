@@ -712,19 +712,6 @@ function aktualisiereStartNextState() {
       div.appendChild(label);
       div.appendChild(pill);
       
-      // Zeit anzeigen – rechts, dezent
-      const zeitSpan = document.createElement("span");
-      zeitSpan.style.marginLeft = "auto";
-      zeitSpan.style.opacity = "0.7";
-      zeitSpan.style.fontSize = "13px";
-      
-      const totalMs = effektiveKlassenMs(k);
-      if (totalMs > 0) {
-        zeitSpan.textContent = formatTime(totalMs);
-      }
-      
-      div.appendChild(zeitSpan);
-
       // Direkt zu Klasse springen
 div.onclick = async () => {
   if (i === pos) return;
@@ -1040,6 +1027,7 @@ requestAnimationFrame(timerLoop);
 </script>
 </body>
 </html>
+
 
 
 
