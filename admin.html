@@ -23,14 +23,31 @@
     .box { background: var(--card-bg); padding:20px; border-radius:12px; max-width:900px; margin:auto; border:1px solid var(--card-bd); }
     input { width:100%; padding:10px; border-radius:8px; background:#0f1428; color:#eaf2ff; border:1px solid var(--card-bd); }
     button { padding:10px 16px; border:0; border-radius:8px; cursor:pointer; font-size:16px; }
+
+
+  .export-icon{
+    width:36px; height:36px;
+    padding:0;
+    border-radius:10px;
+    border: 1px solid var(--card-bd);
+    background-color: #0f1428;
+    display:inline-flex; align-items:center; justify-content:center;
+    box-shadow:none !important;
+    appearance:none; -webkit-appearance:none; /* UA-Styles neutralisieren */
+  }
+  /* Hover/Active optional */
+  .export-icon:active{ transform:translateY(1px); }
+
     .big-button {
       padding: 20px 32px !important;
       font-size: 24px !important;
       min-width: 140px; min-height: 110px;
       display: flex; justify-content: center; align-items: center;
     }
+    .big-button:active{ transform:translateY(1px); }
     .btn-primary { background:#3b82f6; color:white; }
     .btn-red { background:#ef4444; color:white; }
+    .btn-red:active{ transform:translateY(1px); }
     .row-space { display:flex; gap:8px; align-items:center; justify-content:space-between; margin-top:10px; }
     .row-left  { display:flex; gap:8px; align-items:center; }
     .label { font-weight:600; margin-top:12px; display:block; }
@@ -100,7 +117,7 @@
 
     .modal-actions { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-top:10px; }
     .btn-ghost { background: transparent; color: var(--fg); border: 1px solid var(--card-bd); }
-
+    .btn-ghost:active{ transform:translateY(1px); }
     /* Buttons im Modal: umbrechen erlauben */
     .modal-actions .row-left {
       display: flex;
@@ -181,7 +198,7 @@
         font-size: 20px !important;
         padding: 16px 20px !important;
       }
-
+    }
     @media (max-width: 640px) {
       /* Spalten untereinander */
       .row-space { flex-direction: column; align-items: stretch; }
@@ -216,7 +233,8 @@
       .card .room  { font-size: clamp(12px, 3.2vw, 16px); }
       .btn-primary, .btn-red, .btn-ghost { font-size: 15px; }
     }
-  </style>
+      
+</style>
 </head>
 <body>
 <div class="box">
@@ -266,7 +284,7 @@
 
     <div class="row-space">
       <div class="row-left">
-        <button id="editBtn" class="btn-ghost" title="Klassenliste bearbeiten und speichern">Klassen/Räume bearbeiten</button>
+        <button id="editBtn" class="btn-ghost" title="Klassenliste bearbeiten und speichern">Klassen/Räume bearbeiten</button>        
         <span id="saveHint" class="saving" aria-live="polite"></span>
       </div>
       <div class="row-left">
@@ -276,6 +294,21 @@
     </div>
 
     <div id="info" class="muted" style="margin-top:10px;"></div>
+
+    <div style="margin-top:10px">
+<button id="exportBtn" class="export-icon" title="Konferenzzeiten exportieren">
+  <svg xmlns="http://www.w3.org/2000/svg"
+       viewBox="0 0 24 24"
+       width="22" height="22"
+       stroke="white" stroke-width="2"
+       fill="none" stroke-linecap="round" stroke-linejoin="round"
+       aria-hidden="true" focusable="false">
+    <path d="M12 3v12"/>
+    <path d="M6 9l6 6l6-6"/>
+    <path d="M5 17h14a2 2 0 0 1 2 2v2H3v-2a2 2 0 0 1 2-2z"/>
+  </svg>
+</button>
+  </div>
   </div>
 </div>
 
@@ -303,7 +336,7 @@
     <div class="modal-actions">
       <div class="row-left">
         <button id="reverseBtn" class="btn-ghost" style="border-color:#3b82f6;color:#3b82f6;">
-          Klassenreihenfolge umdrehen
+          Reihenfolge umdrehen
         </button>
         <button id="cancelEditBtn" class="btn-ghost">Abbrechen</button>
         <button id="saveEditBtn" class="btn-primary">Speichern</button>
@@ -316,6 +349,8 @@
 <button id="logoutBtn" class="logout-btn" title="Abmelden">Abmelden</button>
 
 <script type="module">
+  let startZeitGesamt = null;
+  let klassenDauer = {}; // Klasse → { start: ms, dauer: ms }
   // --- Firebase Config ---
   const firebaseConfig = {
     apiKey: "AIzaSyCuLVnVCnpc1JPO5eRsUpwOdTjacZ6cgso",
@@ -330,12 +365,25 @@
 
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-  import { getDatabase, ref, get, set, update } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+  import { getDatabase, ref, get, set, update, onValue, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
 
   const app  = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const db   = getDatabase(app);
-import { onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+  let serverOffset = 0;
+
+  
+  // Server-Zeit-Offset einmal abonnieren (immer aktuell)
+  onValue(ref(db, ".info/serverTimeOffset"), (snap) => {
+    serverOffset = snap.val() || 0;
+  });
+
+  function serverNow() {
+    return Date.now() + serverOffset;
+  }
+
 
 onValue(ref(db, "steuerung"), (snap) => {
     const v = snap.exists() ? snap.val() : {};
@@ -359,6 +407,20 @@ onValue(ref(db, "steuerung"), (snap) => {
     requestAnimationFrame(keepActiveAndNextInView);
 });
  
+onValue(ref(db, "zeiten"), snap => {
+  klassenDauer = snap.exists() ? snap.val() : {};
+
+  // Falls eine Fehlstruktur kommt → reparieren
+  Object.keys(klassenDauer).forEach(k => {
+    if (!klassenDauer[k] || typeof klassenDauer[k] !== "object") {
+      klassenDauer[k] = { start: null, dauer: 0 };
+    }
+  });
+
+  // UI aktualisieren
+  aktualisiereKlassenListe();
+});
+
   // DOM
   const loginBox = document.getElementById("loginBox");
   const panel    = document.getElementById("panel");
@@ -374,8 +436,9 @@ onValue(ref(db, "steuerung"), (snap) => {
   const cardVorbRoom    = document.getElementById("cardVorbRoom");
   const loginError = document.getElementById("loginError");
   const editBtn    = document.getElementById("editBtn");
-  const logoutBtn  = document.getElementById("logoutBtn"); // Logout
-
+  const logoutBtn  = document.getElementById("logoutBtn");
+  const exportBtn = document.getElementById("exportBtn");
+  
   // Modal
   const listModal = document.getElementById("listModal");
   const editorTextarea = document.getElementById("editorTextarea");
@@ -427,6 +490,22 @@ onValue(ref(db, "steuerung"), (snap) => {
 
     // Zustand laden
     await ladeSteuerung();
+
+  try {
+    const metaSnap = await get(ref(db, "meta/startZeitGesamt"));
+    if (metaSnap.exists()) {
+      const serverStart = metaSnap.val(); // ms seit Epoche (Serverzeit)
+      if (typeof serverStart === "number" && serverStart > 0) {
+        startZeitGesamt = serverStart; // ✅ wichtig: OHNE +serverOffset
+      } else {
+        startZeitGesamt = null;
+      }
+    } else {
+      startZeitGesamt = null;
+    }
+  } catch (e) {
+    startZeitGesamt = null;
+  }
 
     // UI initial
     editorTextarea.value = klassen.join("\n");
@@ -480,7 +559,7 @@ onValue(ref(db, "steuerung"), (snap) => {
     // Räume abwechselnd nach Index
     const aktuellRaum      = aktuell ? ((pos % 2 === 0) ? raum1 : raum2) : null;
     const vorbereitungRaum = vorb    ? (((pos + 1) % 2 === 0) ? raum1 : raum2) : null;
-    const now = Date.now();
+    const now = serverNow();
     await update(ref(db, "anzeige"), {
       aktuell,
       vorbereitung: vorb,
@@ -501,6 +580,74 @@ onValue(ref(db, "steuerung"), (snap) => {
       <div>Position: ${klassen.length ? (pos + 1) : 0} / ${klassen.length} ${initialized ? "" : "(noch nicht gestartet)"}</div>
     `;
   }
+
+  function formatTime(ms) {
+  const s = Math.floor(ms / 1000);
+  const m = Math.floor(s / 60);
+  const h = Math.floor(m / 60);
+
+  if (h === 0) return `${m % 60}m ${s % 60}s`;
+  return `${h}h ${m % 60}m ${s % 60}s`;
+}
+function formatHMS(ms) {
+  const s = Math.floor(ms / 1000);
+  const m = Math.floor(s / 60);
+  const h = Math.floor(m / 60);
+
+  const mm = String(m % 60).padStart(2, "0");
+  const ss = String(s % 60).padStart(2, "0");
+
+  if (h === 0) {
+    // keine Stunden anzeigen
+    return `${mm}:${ss}`;
+  }
+
+  const hh = String(h).padStart(2, "0");
+  return `${hh}:${mm}:${ss}`;
+}
+
+function effektiveKlassenMs(klasse, nowOverride) {
+  const rec = klassenDauer[klasse];
+  if (!rec) return 0;
+  const now = (typeof nowOverride === "number") ? nowOverride : serverNow();
+  const laufend = rec.start ? (now - rec.start) : 0;
+  return (rec.dauer || 0) + laufend;
+}
+
+async function stoppeAktuelleKlasse() {
+  const k = klassen[pos];
+  if (!k) return;
+
+  const rec = klassenDauer[k] || { start: null, dauer: 0 };
+  if (rec.start) {
+    rec.dauer += serverNow() - rec.start;
+    rec.start = null;
+    klassenDauer[k] = rec;
+
+    await update(ref(db, "zeiten/" + k), {
+      start: null,
+      dauer: rec.dauer
+    });
+  }
+}
+
+async function starteNeueKlasse() {
+  const k = klassen[pos];
+  if (!k) return;
+
+  const now = serverNow();
+
+  if (!klassenDauer[k]) {
+    klassenDauer[k] = { start: now, dauer: 0 };
+  } else {
+    klassenDauer[k].start = now;
+  }
+
+  await update(ref(db, "zeiten/" + k), {
+    start: serverTimestamp(),
+    dauer: klassenDauer[k].dauer
+  });
+}
 
   function aktualisiereKarten() {
     // Aktuell
@@ -523,24 +670,37 @@ onValue(ref(db, "steuerung"), (snap) => {
     cardVorbRoom.textContent    = vRoom ? `(Raum: ${vRoom})` : "";
   }
 
-  function aktualisiereStartNextLabel() {
-    startNextBtn.textContent = initialized ? "Nächste Klasse" : "Konferenz starten";
-  }
 
-  function aktualisiereStartNextState() {
-    // Wenn noch nicht gestartet: Button nur aktivieren, wenn es überhaupt Klassen gibt.
+  function aktualisiereStartNextLabel() {
     if (!initialized) {
-      const hasClasses = Array.isArray(klassen) && klassen.length > 0;
-      startNextBtn.disabled = !hasClasses;
-      startNextBtn.setAttribute('aria-disabled', String(startNextBtn.disabled));
+      startNextBtn.textContent = "Konferenz starten";
       return;
     }
   
-    // Wenn gestartet: am Ende deaktivieren (pos auf letzter Index).
-    const istLetzte = klassen.length > 0 && pos >= klassen.length - 1;
-    startNextBtn.disabled = istLetzte;
-    startNextBtn.setAttribute('aria-disabled', String(istLetzte));
+    const istLetzte = (klassen.length > 0 && pos >= klassen.length - 1);
+  
+    if (istLetzte) {
+      startNextBtn.textContent = "Konferenz beenden";
+    } else {
+      startNextBtn.textContent = "Nächste Klasse";
+    }
   }
+
+
+function aktualisiereStartNextState() {
+  // Wenn nicht gestartet → nur aktivieren, wenn Klassen vorhanden
+  if (!initialized) {
+    const hasClasses = Array.isArray(klassen) && klassen.length > 0;
+    startNextBtn.disabled = !hasClasses;
+    startNextBtn.setAttribute('aria-disabled', String(startNextBtn.disabled));
+    return;
+  }
+
+  // Wenn gestartet → NIE deaktivieren (Konferenz beenden muss möglich sein)
+  startNextBtn.disabled = false;
+  startNextBtn.setAttribute('aria-disabled', "false");
+}
+
   
   // --- Klickbare Liste rendern ---
   function aktualisiereKlassenListe() {
@@ -577,23 +737,30 @@ onValue(ref(db, "steuerung"), (snap) => {
 
       div.appendChild(label);
       div.appendChild(pill);
-
+      
       // Direkt zu Klasse springen
-      div.onclick = async () => {
-        if (i === pos) return;
-        const ok = confirm("Möchtest du die aktuelle Klasse wirklich ändern?");
-        if (!ok) return;
-        pos = i;
-        initialized = true;
-        await speichereSteuerung();
-        await schreibeAnzeige();
-        aktualisiereKarten();
-        aktualisiereStartNextLabel();
-        aktualisiereStartNextState();
-        zeigeInfo();
-        aktualisiereKlassenListe();
-        keepActiveAndNextInView();
-      };
+div.onclick = async () => {
+  if (i === pos) return;
+
+  const ok = confirm("Möchtest du die aktuelle Klasse wirklich ändern?");
+  if (!ok) return;
+
+  // --- TIMER KORREKT ÜBERGEBEN ---
+  await stoppeAktuelleKlasse();   // alte Klasse stoppen
+  pos = i;                  // neue Klasse setzen
+  initialized = true;       // Konferenz läuft
+  await starteNeueKlasse();       // neue Klasse starten
+
+  // --- SPEICHERN & UI ---
+  await speichereSteuerung();
+  await schreibeAnzeige();
+  aktualisiereKarten();
+  aktualisiereStartNextLabel();
+  aktualisiereStartNextState();
+  zeigeInfo();
+  aktualisiereKlassenListe();
+  keepActiveAndNextInView();
+};
       klassenList.appendChild(div);
     });
   }
@@ -630,29 +797,80 @@ onValue(ref(db, "steuerung"), (snap) => {
   }
 
   // --- Bedienlogik ---
-  startNextBtn.onclick = async () => {
-    if (klassen.length === 0) {
-      alert("Bitte zuerst die Klassenliste eingeben (eine Klasse pro Zeile).");
-      return;
-    }
-    if (!initialized) {
-      initialized = true;
-    } else {
-      if (pos < klassen.length - 1) pos++;
-    }
-    await speichereSteuerung();
-    await schreibeAnzeige();
+startNextBtn.onclick = async () => {
+
+  // --- NEU: Wenn letzte Klasse → Konferenz beenden ---
+  if (initialized && pos >= klassen.length - 1) {
+  
+  // ⭐ Feierliches Feuerwerk im Admin-Fenster
+  runFireworks(5000); // 5 Sekunden
+
+    // 1) aktuellen Timer stoppen
+    await stoppeAktuelleKlasse();
+
+    // 2) Anzeige leeren (aber Zeiten nicht!)
+    const now = serverNow();
+    await update(ref(db, "anzeige"), {
+      aktuell: "–",
+      vorbereitung: "–",
+      aktuellRaum: null,
+      vorbereitungRaum: null,
+      aktualisiertAm: now,
+      updatedAt: now
+    });
+
+    // 3) UI zurücksetzen
+    initialized = false;
+
     aktualisiereKarten();
     aktualisiereStartNextLabel();
     aktualisiereStartNextState();
     zeigeInfo();
     aktualisiereKlassenListe();
-    requestAnimationFrame(keepActiveAndNextInView);
-  };
+
+    
+  // 5) Button deaktivieren + Text ändern
+  startNextBtn.textContent = "Konferenz beendet";
+  startNextBtn.disabled = true;
+  startNextBtn.setAttribute("aria-disabled", "true");
+
+    return; // Ende – NICHT weitermachen
+  }
+
+  // --- bisherigen Code unverändert lassen ---
+  if (klassen.length === 0) {
+    alert("Bitte zuerst die Klassenliste eingeben (eine Klasse pro Zeile).");
+    return;
+  }
+  if (!initialized) {
+    initialized = true;
+    startZeitGesamt = serverNow();
+    await update(ref(db, "meta"), {
+      startZeitGesamt: serverTimestamp()
+    });
+    await starteNeueKlasse();
+  } else {
+    await stoppeAktuelleKlasse();
+    if (pos < klassen.length - 1) pos++;
+    await starteNeueKlasse();
+  }
+  await speichereSteuerung();
+  await schreibeAnzeige();
+  aktualisiereKarten();
+  aktualisiereStartNextLabel();
+  aktualisiereStartNextState();
+  zeigeInfo();
+  aktualisiereKlassenListe();
+  requestAnimationFrame(keepActiveAndNextInView);
+};
 
   prevBtn.onclick = async () => {
     if (!initialized || klassen.length === 0) return;
-    if (pos > 0) pos--;
+    if (pos > 0) {
+      await stoppeAktuelleKlasse();
+      pos--;
+      await starteNeueKlasse();
+    }
     await speichereSteuerung();
     await schreibeAnzeige();
     aktualisiereKarten();
@@ -668,8 +886,13 @@ onValue(ref(db, "steuerung"), (snap) => {
     if (!confirm("Soll die Notenkonferenz wirklich neu gestartet werden?")) return;
     initialized = false;
     pos = 0;
+    // --- Zeiten löschen ---
+    startZeitGesamt = null;
+    await update(ref(db, "meta"), { startZeitGesamt: null })
+    klassenDauer = {};
+    await set(ref(db, "zeiten"), {});
     await speichereSteuerung();
-    const now = Date.now();
+    const now = serverNow();
     await update(ref(db, "anzeige"), {
       aktuell: null,
       vorbereitung: null,
@@ -685,6 +908,116 @@ onValue(ref(db, "steuerung"), (snap) => {
     aktualisiereKlassenListe();
   };
 
+document.addEventListener("DOMContentLoaded", () => {
+  const btn = document.getElementById("exportBtn");
+  if (!btn) return;
+
+  btn.addEventListener("click", (e) => {
+    e.preventDefault();
+
+    const nowFixed = serverNow();
+    const roundToSec = (ms) => Math.floor(ms / 1000) * 1000;
+
+    // Daten (alle Klassen; Namen getrimmt)
+    const entries = klassen.map(kRaw => {
+      const k = (kRaw ?? "").trim();
+      const msExact = effektiveKlassenMs(k, nowFixed);
+      const msDisplay = roundToSec(msExact);
+      return { k, msExact, msDisplay };
+    }).filter(e => e.k.length > 0);
+
+    if (!entries.length) { alert("Keine Klassen vorhanden."); return; }
+
+    // Gesamtzeit = Summe der angezeigten Einzelzeiten (auf Sekunde gerundet)
+    const totalDisplayMs = entries.reduce((s, e) => s + e.msDisplay, 0);
+
+    // Maße
+    const barH = 26;
+    const gap  = 10;
+    const margin = { top: 56, right: 40, bottom: 40, left: 120 };
+    const innerH = entries.length * (barH + gap) - gap;
+    const innerW = 700;
+    const width  = innerW + margin.left + margin.right;
+    const height = innerH + margin.top + margin.bottom;
+
+    // Skala (Breiten auf exakte ms für „smoothes“ Verhältnis)
+    const maxMs = Math.max(...entries.map(e => e.msExact), 1);
+    const X = (ms) => margin.left + (ms / maxMs) * innerW;
+    const Y = (i)  => margin.top  + i * (barH + gap);
+
+    // Ticks (0/25/50/75/100%), Labels gerundet
+    const tickExact   = [0, .25, .5, .75, 1].map(t => Math.round(t * maxMs));
+    const tickDisplay = tickExact.map(roundToSec);
+
+    // Format
+    const fmt = (ms) => formatHMS(ms);
+
+    // Titel (AT)
+    const monate = ["Jänner","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
+    const jetzt = new Date();
+    const titel = `GvP Konferenzzeiten – ${monate[jetzt.getMonth()]} ${jetzt.getFullYear()} – Gesamtzeit: ${fmt(totalDisplayMs)}`;
+
+    // SVG
+    let svg = '';
+    svg += `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">`;
+    svg += `<title>${titel}</title>`;
+    svg += `<style> text { font-family: system-ui, Segoe UI, Roboto, Arial; } </style>`;
+    svg += `<rect width="${width}" height="${height}" fill="#ffffff"/>`;
+
+    // Gradient: dunkle Blautöne
+    svg += `<defs>
+              <linearGradient id="barGrad" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%"  stop-color="#1e3a8a"/>
+                <stop offset="100%" stop-color="#0ea5e9"/>
+              </linearGradient>
+            </defs>`;
+
+    // Titel
+    svg += `<text x="${width/2}" y="28" fill="#111827" font-size="18" font-weight="700" text-anchor="middle">${titel}</text>`;
+
+    // Gitter & X-Achse
+    tickExact.forEach((msExact, i) => {
+      const x = X(msExact);
+      svg += `<line x1="${x}" y1="${margin.top}" x2="${x}" y2="${margin.top + innerH}" stroke="#e5e7eb" stroke-width="1"/>`;
+      svg += `<text x="${x}" y="${margin.top + innerH + 24}" fill="#374151" font-size="12" text-anchor="middle">${fmt(tickDisplay[i])}</text>`;
+    });
+
+    // Balken + Labels
+    entries.forEach((e, i) => {
+      const y = Y(i);
+      const w = (e.msExact / maxMs) * innerW;
+
+      // Klassenlabel links
+      svg += `<text x="${margin.left - 10}" y="${y + barH/2 + 5}" fill="#111827" font-size="14" text-anchor="end">${e.k}</text>`;
+
+      // Balken
+      svg += `<rect x="${margin.left}" y="${y}" width="${w}" height="${barH}" rx="6" fill="url(#barGrad)"/>`;
+
+      // Zeitlabel (auf Sekunde gerundet)
+      const label = fmt(e.msDisplay);
+      if (w >= 58) {
+        svg += `<text x="${margin.left + w - 8}" y="${y + barH/2 + 5}" fill="#ffffff" font-size="12" text-anchor="end">${label}</text>`;
+      } else {
+        svg += `<text x="${margin.left + w + 6}" y="${y + barH/2 + 5}" fill="#111827" font-size="12" text-anchor="start">${label}</text>`;
+      }
+    });
+
+    // Plot-Rahmen
+    svg += `<rect x="${margin.left}" y="${margin.top}" width="${innerW}" height="${innerH}" fill="none" stroke="#e5e7eb" stroke-width="1"/>`;
+    svg += `</svg>`;
+
+    // Download
+    const dateiname = `gvp-konferenzzeiten_${monate[jetzt.getMonth()]}_${jetzt.getFullYear()}.svg`;
+    const blob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = dateiname;
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+});
+  
   // --- Modal öffnen/schließen ---
   function openListEditor() {
     editorTextarea.value = klassen.join("\n");
@@ -704,13 +1037,47 @@ onValue(ref(db, "steuerung"), (snap) => {
   window.addEventListener("keydown", (e) => { if (e.key === "Escape" && listModal.classList.contains("open")) closeListEditor(); });
 
   // Klassenreihenfolge umdrehen
-  document.getElementById("reverseBtn").onclick = () => {
-    const lines = editorTextarea.value.split("\n").map(s => s.trim()).filter(Boolean);
-    if (lines.length === 0) { alert("Keine Klassen vorhanden."); return; }
-    const ok = confirm("Soll die Reihenfolge der Klassen wirklich umgedreht werden?");
-    if (!ok) return;
-    editorTextarea.value = lines.reverse().join("\n");
-  };
+document.getElementById("reverseBtn").onclick = () => {
+  const lines = editorTextarea.value
+    .split("\n")
+    .map(s => s.trim())
+    .filter(Boolean);
+
+  if (lines.length === 0) {
+    alert("Keine Klassen vorhanden.");
+    return;
+  }
+
+  const ok = confirm("Soll die Reihenfolge der Klassen umgedreht werden?");
+  if (!ok) return;
+
+  // Hilfsfunktionen
+  const sortAsc = arr => arr.slice().sort((a, b) => {
+    const gradeA = parseInt(a);
+    const gradeB = parseInt(b);
+    if (gradeA !== gradeB) return gradeA - gradeB;  // Jahrgang aufsteigend
+    return a.localeCompare(b, "de", { numeric:true });
+  });
+
+  const sortDesc = arr => arr.slice().sort((a, b) => {
+    const gradeA = parseInt(a);
+    const gradeB = parseInt(b);
+    if (gradeA !== gradeB) return gradeB - gradeA;  // Jahrgang absteigend
+    return a.localeCompare(b, "de", { numeric:true });
+  });
+
+  // Bestimmen, welche Version aktuell ist:
+  const asc = sortAsc(lines);
+  const desc = sortDesc(lines);
+
+  const isCurrentlyAsc = JSON.stringify(lines) === JSON.stringify(asc);
+
+  // Umschalten
+  const newList = isCurrentlyAsc ? desc : asc;
+
+  editorTextarea.value = newList.join("\n");
+};
+
 
   // Speichern aus dem Modal
   saveEditBtn.onclick = async () => {
@@ -752,7 +1119,107 @@ onValue(ref(db, "steuerung"), (snap) => {
     if (startNextBtn.disabled) return;
     startNextBtn.click();
   });
+
+let lastTick = 0;
+
+function timerLoop(ts) {
+  if (initialized && startZeitGesamt) {
+
+    // nur jede Sekunde aktualisieren
+    if (ts - lastTick >= 950) {
+      lastTick = ts;
+
+      // --- Klassenliste aktualisieren ---
+      aktualisiereKlassenListe();
+    }
+  }
+
+  requestAnimationFrame(timerLoop);
+}
+
+requestAnimationFrame(timerLoop);
+function runFireworks(durationMs = 5000) {
+  const canvas = document.createElement("canvas");
+  canvas.id = "adminFireworksCanvas";
+  canvas.style.position = "fixed";
+  canvas.style.inset = "0";
+  canvas.style.pointerEvents = "none";
+  canvas.style.zIndex = "99999";
+  document.body.appendChild(canvas);
+
+  const ctx = canvas.getContext("2d");
+  const DPR = window.devicePixelRatio || 1;
+
+  function resize() {
+    canvas.width = window.innerWidth * DPR;
+    canvas.height = window.innerHeight * DPR;
+    ctx.scale(DPR, DPR);
+  }
+  resize();
+  window.addEventListener("resize", resize, { once: true });
+
+  const particles = [];
+  const colors = ["#ffffff", "#88ccff", "#ffd166", "#a7f3d0", "#fca5a5"];
+  const GRAV = 0.12;
+  const FRICTION = 0.985;
+
+  function burst() {
+    const x = Math.random() * window.innerWidth;
+    const y = Math.random() * window.innerHeight * 0.4 + 50;
+    for (let i = 0; i < 40; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 2 + Math.random() * 4;
+      particles.push({
+        x, y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        life: 60 + Math.random() * 40,
+        color: colors[(Math.random() * colors.length) | 0],
+        size: 2 + Math.random() * 2
+      });
+    }
+  }
+
+  let start = performance.now();
+  function tick(now) {
+    const elapsed = now - start;
+
+    if (elapsed < durationMs) burst(); // regelmäßig neue Explosionen
+
+    ctx.clearRect(0, 0, canvas.width / DPR, canvas.height / DPR);
+
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.vx *= FRICTION;
+      p.vy = p.vy * FRICTION + GRAV;
+      p.x += p.vx;
+      p.y += p.vy;
+      p.life--;
+
+      ctx.globalAlpha = Math.max(0, p.life / 80);
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fill();
+
+      if (p.life <= 0) particles.splice(i, 1);
+    }
+    ctx.globalAlpha = 1;
+
+    if (elapsed < durationMs || particles.length > 0) {
+      requestAnimationFrame(tick);
+    } else {
+      canvas.remove();
+    }
+  }
+  requestAnimationFrame(tick);
+}
+
 </script>
 </body>
 </html>
+
+
+
+
 
