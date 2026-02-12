@@ -1151,64 +1151,86 @@ function runConfetti(durationMs = 5000) {
   const ctx = canvas.getContext("2d", { alpha: true });
   const DPR = window.devicePixelRatio || 1;
 
+  // --- Responsive Skalierung ---
+  // Ziel: auf kleinen Displays kleinere und etwas weniger Konfetti
+  let vw = window.innerWidth;
+  let vh = window.innerHeight;
+
+  function sizeScaleFromViewport() {
+    // Skala ~ 0.7 (Handy) bis 1.0 (Desktop)
+    // < 420px: 0.68…0.75 ; 420–768px: 0.75…0.9 ; > 1024px: 1.0
+    const w = window.innerWidth;
+    if (w <= 360) return 0.68;
+    if (w <= 420) return 0.72;
+    if (w <= 520) return 0.78;
+    if (w <= 640) return 0.84;
+    if (w <= 768) return 0.9;
+    if (w <= 1024) return 0.96;
+    return 1.0;
+  }
+
+  // Basierend auf Viewport und DPR
+  let SIZE_SCALE = sizeScaleFromViewport();
+
   function resize() {
-    canvas.width = window.innerWidth * DPR;
-    canvas.height = window.innerHeight * DPR;
+    vw = window.innerWidth;
+    vh = window.innerHeight;
+    canvas.width = vw * DPR;
+    canvas.height = vh * DPR;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.scale(DPR, DPR);
+    SIZE_SCALE = sizeScaleFromViewport();
   }
   resize();
-  // bei Größenänderung neu skalieren
   const onResize = () => resize();
   window.addEventListener("resize", onResize);
 
   const pieces = [];
-  const COLORS = [
-    "#f87171", // rot
-    "#34d399", // grün
-    "#60a5fa", // blau
-    "#fbbf24", // gelb
-    "#a78bfa", // lila
-    "#fb7185", // pink
-    "#22d3ee"  // cyan
-  ];
+  const COLORS = ["#f87171","#34d399","#60a5fa","#fbbf24","#a78bfa","#fb7185","#22d3ee"];
 
-  const GRAV = 0.18;       // Schwerkraft
-  const DRAG = 0.992;      // Luftwiderstand
-  const ROT_DRAG = 0.995;  // Rotationsabbau
-  const WIND_BASE = 0.02;  // Grundwind
-  const GROUND = window.innerHeight + 40;
+  const GRAV = 0.18;
+  const DRAG = 0.992;
+  const ROT_DRAG = 0.995;
+  const WIND_BASE = 0.02;
 
-  // Ein Konfetti-Teil: kleines Rechteck oder Kreis mit Rotation
+  // Burst-Dichte abhängig von Displaygröße
+  function burstCount() {
+    // Handy weniger, Desktop mehr
+    if (vw <= 420) return 36 + (Math.random() * 18) | 0;
+    if (vw <= 640) return 50 + (Math.random() * 22) | 0;
+    if (vw <= 1024) return 60 + (Math.random() * 30) | 0;
+    return 70 + (Math.random() * 40) | 0;
+  }
+
+  // Grundgrößen (werden von SIZE_SCALE skaliert)
+  const BASE_W_MIN = 6,  BASE_W_MAX = 12;
+  const BASE_H_MIN = 10, BASE_H_MAX = 18;
+
   function spawnConfettiBurst() {
-    const burstX = Math.random() * window.innerWidth;
-    const burstY = -20; // oben ins Bild
-    const count = 60 + (Math.random() * 40) | 0;
+    const burstX = Math.random() * vw;
+    const burstY = -20;
+    const count = burstCount();
 
     for (let i = 0; i < count; i++) {
-      const angle = Math.random() * Math.PI - Math.PI / 2; // nach unten
-      const speed = 4 + Math.random() * 6;
+      const angle = Math.random() * Math.PI - Math.PI / 2;
+      const speed = (4 + Math.random() * 6) * (0.92 + 0.16 * SIZE_SCALE); // leichte Anpassung
+
+      const w = (BASE_W_MIN + Math.random() * (BASE_W_MAX - BASE_W_MIN)) * SIZE_SCALE;
+      const h = (BASE_H_MIN + Math.random() * (BASE_H_MAX - BASE_H_MIN)) * SIZE_SCALE;
 
       pieces.push({
-        // Position
         x: burstX + (Math.random() * 40 - 20),
         y: burstY + (Math.random() * 10 - 5),
-        // Geschwindigkeit
         vx: Math.cos(angle) * speed,
         vy: Math.sin(angle) * speed,
-        // Größe & Form
-        w: 6 + Math.random() * 6,
-        h: 10 + Math.random() * 10,
+        w, h,
         shape: Math.random() < 0.18 ? "circle" : "rect",
-        // Optik
         color: COLORS[(Math.random() * COLORS.length) | 0],
-        // Rotation
         rot: Math.random() * Math.PI * 2,
         vr: (Math.random() - 0.5) * 0.25,
-        // „Flip“-Effekt für Papierstreifen (Farbwechsel per Sinus)
         flip: Math.random() * Math.PI * 2,
-        vflip: 0.2 + Math.random() * 0.35,
-        life: 220 + (Math.random() * 80) | 0
+        vflip: (0.2 + Math.random() * 0.35) * (0.85 + 0.3 * SIZE_SCALE),
+        life: (200 + (Math.random() * 80) | 0) * (0.9 + 0.2 * SIZE_SCALE)
       });
     }
   }
@@ -1220,17 +1242,17 @@ function runConfetti(durationMs = 5000) {
     const elapsed = now - start;
     t = elapsed / 1000;
 
-    // Weiterhin Bursts erzeugen, solange Dauer nicht abgelaufen
+    // Bursts: auf Handy etwas weniger häufig
+    const burstEvery = vw <= 420 ? 260 : vw <= 640 ? 240 : 220;
     if (elapsed < durationMs) {
-      // Jede ~220ms kleiner Burst
-      if (((elapsed / 220) | 0) !== (((elapsed - 16) / 220) | 0)) {
+      if (((elapsed / burstEvery) | 0) !== (((elapsed - 16) / burstEvery) | 0)) {
         spawnConfettiBurst();
       }
     }
 
-    ctx.clearRect(0, 0, canvas.width / DPR, canvas.height / DPR);
+    ctx.clearRect(0, 0, vw, vh);
 
-    const wind = WIND_BASE * Math.sin(t * 1.5); // leichter Windwechselfluss
+    const wind = WIND_BASE * Math.sin(t * 1.5);
 
     for (let i = pieces.length - 1; i >= 0; i--) {
       const p = pieces[i];
@@ -1244,10 +1266,7 @@ function runConfetti(durationMs = 5000) {
       p.vr *= ROT_DRAG;
       p.rot += p.vr;
 
-      // Flip-Animation (Papier kippt)
       p.flip += p.vflip;
-
-      // Leben runterzählen
       p.life--;
 
       // Zeichnen
@@ -1259,15 +1278,14 @@ function runConfetti(durationMs = 5000) {
       ctx.rotate(p.rot);
 
       if (p.shape === "rect") {
-        // Flip-Helligkeit simulieren (Vorder-/Rückseite)
         const flipShade = (Math.sin(p.flip) + 1) / 2; // 0..1
-        const fill = shadeColor(p.color, flipShade * -0.35); // etwas abdunkeln
+        const fill = shadeColor(p.color, flipShade * -0.35);
         ctx.fillStyle = fill;
         roundRect(ctx, -p.w / 2, -p.h / 2, p.w, p.h, 2);
         ctx.fill();
       } else {
-        ctx.fillStyle = p.color;
         ctx.beginPath();
+        ctx.fillStyle = p.color;
         ctx.arc(0, 0, Math.max(p.w, p.h) * 0.35, 0, Math.PI * 2);
         ctx.fill();
       }
@@ -1275,8 +1293,7 @@ function runConfetti(durationMs = 5000) {
       ctx.restore();
       ctx.globalAlpha = 1;
 
-      // Entfernen, wenn unsichtbar/zu weit unten/ohne Leben
-      if (p.life <= 0 || p.y > GROUND) pieces.splice(i, 1);
+      if (p.life <= 0 || p.y > vh + 40) pieces.splice(i, 1);
     }
 
     if (elapsed < durationMs || pieces.length > 0) {
@@ -1289,19 +1306,14 @@ function runConfetti(durationMs = 5000) {
 
   requestAnimationFrame(tick);
 
-  // Hilfsfunktionen
+  // Utils
   function shadeColor(hex, percent) {
-    // hex -> rgb
     const c = hex.replace("#", "");
     const num = parseInt(c.length === 3 ? c.replace(/(.)/g, "$1$1") : c, 16);
-    let r = (num >> 16) & 0xff;
-    let g = (num >> 8) & 0xff;
-    let b = num & 0xff;
-
+    let r = (num >> 16) & 0xff, g = (num >> 8) & 0xff, b = num & 0xff;
     r = Math.round(Math.min(255, Math.max(0, r + r * percent)));
     g = Math.round(Math.min(255, Math.max(0, g + g * percent)));
     b = Math.round(Math.min(255, Math.max(0, b + b * percent)));
-
     return `rgb(${r},${g},${b})`;
   }
 
@@ -1321,6 +1333,7 @@ function runConfetti(durationMs = 5000) {
 </script>
 </body>
 </html>
+
 
 
 
