@@ -1098,8 +1098,7 @@ function runFireworks(durationMs = 5000) {
 
     if (elapsed < durationMs) burst(); // regelmäßig neue Explosionen
 
-    ctx.fillStyle = "rgba(0, 0, 0, 0.25)";
-    ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
+    ctx.clearRect(0, 0, canvas.width / DPR, canvas.height / DPR);
 
     for (let i = particles.length - 1; i >= 0; i--) {
       const p = particles[i];
@@ -1131,5 +1130,6 @@ function runFireworks(durationMs = 5000) {
 </script>
 </body>
 </html>
+
 
 
