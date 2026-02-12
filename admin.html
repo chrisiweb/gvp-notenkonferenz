@@ -910,141 +910,110 @@ document.addEventListener("DOMContentLoaded", () => {
   const btn = document.getElementById("exportBtn");
   if (!btn) return;
 
-btn.onclick = () => {
-  const nowFixed = serverNow();
+  btn.addEventListener("click", (e) => {
+    e.preventDefault();
 
-  // Helper: konsequent auf volle Sekunden runden (nach unten)
-  const roundToSec = (ms) => Math.floor(ms / 1000) * 1000;
+    const nowFixed = serverNow();
+    const roundToSec = (ms) => Math.floor(ms / 1000) * 1000;
 
-  // Daten (alle Klassen; Namen getrimmt)
-  const entries = klassen.map(kRaw => {
-    const k = (kRaw ?? "").trim();
-    const msExact = effektiveKlassenMs(k, nowFixed);
-    const msDisplay = roundToSec(msExact); // konsistente Anzeige
-    return { k, msExact, msDisplay };
-  }).filter(e => e.k.length > 0);
+    // Daten (alle Klassen; Namen getrimmt)
+    const entries = klassen.map(kRaw => {
+      const k = (kRaw ?? "").trim();
+      const msExact = effektiveKlassenMs(k, nowFixed);
+      const msDisplay = roundToSec(msExact);
+      return { k, msExact, msDisplay };
+    }).filter(e => e.k.length > 0);
 
-  if (!entries.length) { alert("Keine Klassen vorhanden."); return; }
+    if (!entries.length) { alert("Keine Klassen vorhanden."); return; }
 
-  // Gesamtsummen (Anzeige-Summe basiert auf msDisplay, damit Titel == Summe der Labels)
-  const totalDisplayMs = entries.reduce((s, e) => s + e.msDisplay, 0);
+    // Gesamtzeit = Summe der angezeigten Einzelzeiten (auf Sekunde gerundet)
+    const totalDisplayMs = entries.reduce((s, e) => s + e.msDisplay, 0);
 
-  // Maße
-  const barH = 26;
-  const gap  = 10;
-  const margin = { top: 56, right: 40, bottom: 40, left: 120 };
-  const innerH = entries.length * (barH + gap) - gap;
-  const innerW = 700; // Diagrammbreite (anpassbar)
-  const width  = innerW + margin.left + margin.right;
-  const height = innerH + margin.top + margin.bottom;
+    // Maße
+    const barH = 26;
+    const gap  = 10;
+    const margin = { top: 56, right: 40, bottom: 40, left: 120 };
+    const innerH = entries.length * (barH + gap) - gap;
+    const innerW = 700;
+    const width  = innerW + margin.left + margin.right;
+    const height = innerH + margin.top + margin.bottom;
 
-  // Skala für Breiten: weiter auf exakten ms, damit das Verhältnis möglichst „glatt“ bleibt
-  const maxMs = Math.max(...entries.map(e => e.msExact), 1);
-  const X = (ms) => margin.left + (ms / maxMs) * innerW;
-  const Y = (i)  => margin.top  + i * (barH + gap);
+    // Skala (Breiten auf exakte ms für „smoothes“ Verhältnis)
+    const maxMs = Math.max(...entries.map(e => e.msExact), 1);
+    const X = (ms) => margin.left + (ms / maxMs) * innerW;
+    const Y = (i)  => margin.top  + i * (barH + gap);
 
-  // Ticks (0/25/50/75/100%), Anzeige gerundet
-  const tickExact = [0, .25, .5, .75, 1].map(t => Math.round(t * maxMs));
-  const tickDisplay = tickExact.map(roundToSec);
+    // Ticks (0/25/50/75/100%), Labels gerundet
+    const tickExact   = [0, .25, .5, .75, 1].map(t => Math.round(t * maxMs));
+    const tickDisplay = tickExact.map(roundToSec);
 
-  // Zeitformat (dein formatHMS)
-  const fmt = (ms) => formatHMS(ms);
+    // Format
+    const fmt = (ms) => formatHMS(ms);
 
-  // Kopfzeile: Monat/Jahr (AT) + Gesamtzeit = Summe der angezeigten Einzelzeiten
-  const monate = ["Jänner","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
-  const jetzt = new Date();
-  const titel = `GvP Konferenzzeiten – ${monate[jetzt.getMonth()]} ${jetzt.getFullYear()} – Gesamtzeit: ${fmt(totalDisplayMs)}`;
+    // Titel (AT)
+    const monate = ["Jänner","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
+    const jetzt = new Date();
+    const titel = `GvP Konferenzzeiten – ${monate[jetzt.getMonth()]} ${jetzt.getFullYear()} – Gesamtzeit: ${fmt(totalDisplayMs)}`;
 
-  // SVG
-  let svg = '';
-  svg += `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">`;
-  svg += `<title>${titel}</title>`;
-  svg += `<style> text { font-family: system-ui, Segoe UI, Roboto, Arial; } </style>`;
-  // Hintergrund weiß
-  svg += `<rect width="${width}" height="${height}" fill="#ffffff"/>`;
+    // SVG
+    let svg = '';
+    svg += `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">`;
+    svg += `<title>${titel}</title>`;
+    svg += `<style> text { font-family: system-ui, Segoe UI, Roboto, Arial; } </style>`;
+    svg += `<rect width="${width}" height="${height}" fill="#ffffff"/>`;
 
-  // Gradient: dunkle Blautöne
-  svg += `<defs>
-            <linearGradient id="barGrad" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%"  stop-color="#1e3a8a"/>
-              <stop offset="100%" stop-color="#0ea5e9"/>
-            </linearGradient>
-          </defs>`;
+    // Gradient: dunkle Blautöne
+    svg += `<defs>
+              <linearGradient id="barGrad" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%"  stop-color="#1e3a8a"/>
+                <stop offset="100%" stop-color="#0ea5e9"/>
+              </linearGradient>
+            </defs>`;
 
-  // Titel
-  svg += `<text x="${width/2}" y="28" fill="#111827" font-size="18" font-weight="700" text-anchor="middle">
-            ${titel}
-          </text>`;
+    // Titel
+    svg += `<text x="${width/2}" y="28" fill="#111827" font-size="18" font-weight="700" text-anchor="middle">${titel}</text>`;
 
-  // Gitter + X-Achse: Ticks an exakter Position, aber mit gerundetem Label
-  tickExact.forEach((msExact, i) => {
-    const x = X(msExact);
-    svg += `<line x1="${x}" y1="${margin.top}" x2="${x}" y2="${margin.top + innerH}"
-                  stroke="#e5e7eb" stroke-width="1"/>`;
-    svg += `<text x="${x}" y="${margin.top + innerH + 24}" fill="#374151"
-                  font-size="12" text-anchor="middle">${fmt(tickDisplay[i])}</text>`;
+    // Gitter & X-Achse
+    tickExact.forEach((msExact, i) => {
+      const x = X(msExact);
+      svg += `<line x1="${x}" y1="${margin.top}" x2="${x}" y2="${margin.top + innerH}" stroke="#e5e7eb" stroke-width="1"/>`;
+      svg += `<text x="${x}" y="${margin.top + innerH + 24}" fill="#374151" font-size="12" text-anchor="middle">${fmt(tickDisplay[i])}</text>`;
+    });
+
+    // Balken + Labels
+    entries.forEach((e, i) => {
+      const y = Y(i);
+      const w = (e.msExact / maxMs) * innerW;
+
+      // Klassenlabel links
+      svg += `<text x="${margin.left - 10}" y="${y + barH/2 + 5}" fill="#111827" font-size="14" text-anchor="end">${e.k}</text>`;
+
+      // Balken
+      svg += `<rect x="${margin.left}" y="${y}" width="${w}" height="${barH}" rx="6" fill="url(#barGrad)"/>`;
+
+      // Zeitlabel (auf Sekunde gerundet)
+      const label = fmt(e.msDisplay);
+      if (w >= 58) {
+        svg += `<text x="${margin.left + w - 8}" y="${y + barH/2 + 5}" fill="#ffffff" font-size="12" text-anchor="end">${label}</text>`;
+      } else {
+        svg += `<text x="${margin.left + w + 6}" y="${y + barH/2 + 5}" fill="#111827" font-size="12" text-anchor="start">${label}</text>`;
+      }
+    });
+
+    // Plot-Rahmen
+    svg += `<rect x="${margin.left}" y="${margin.top}" width="${innerW}" height="${innerH}" fill="none" stroke="#e5e7eb" stroke-width="1"/>`;
+    svg += `</svg>`;
+
+    // Download
+    const dateiname = `gvp-konferenzzeiten_${monate[jetzt.getMonth()]}_${jetzt.getFullYear()}.svg`;
+    const blob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = dateiname;
+    a.click();
+    URL.revokeObjectURL(url);
   });
-
-  // Balken + Labels
-  entries.forEach((e, i) => {
-    const y = Y(i);
-    const w = (e.msExact / maxMs) * innerW;
-
-    // Klassenlabel links
-    svg += `<text x="${margin.left - 10}" y="${y + barH/2 + 5}" fill="#111827"
-                  font-size="14" text-anchor="end">${e.k}</text>`;
-
-    // Balken (Gradient)
-    svg += `<rect x="${margin.left}" y="${y}" width="${w}" height="${barH}"
-                  rx="6" fill="url(#barGrad)"/>`;
-
-    // Zeitlabel (auf Sekunden gerundet)
-    const label = fmt(e.msDisplay);
-    if (w >= 58) {
-      svg += `<text x="${margin.left + w - 8}" y="${y + barH/2 + 5}" fill="#ffffff"
-                    font-size="12" text-anchor="end">${label}</text>`;
-    } else {
-      svg += `<text x="${margin.left + w + 6}" y="${y + barH/2 + 5}" fill="#111827"
-                    font-size="12" text-anchor="start">${label}</text>`;
-    }
-  });
-
-  // Plot-Rahmen
-  svg += `<rect x="${margin.left}" y="${margin.top}" width="${innerW}" height="${innerH}"
-                fill="none" stroke="#e5e7eb" stroke-width="1"/>`;
-
-  svg += `</svg>`;
-
-  // Download
-  const dateiname = `gvp-konferenzzeiten_${monate[jetzt.getMonth()]}_${jetzt.getFullYear()}.svg`;
-  const blob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = dateiname;
-  a.click();
-  URL.revokeObjectURL(url);
-};
-
-  // Plot-Rahmen (sehr dezent)
-  svg += `<rect x="${margin.left}" y="${margin.top}" width="${innerW}" height="${innerH}"
-                fill="none" stroke="#e5e7eb" stroke-width="1"/>`;
-
-  // (Gesamtzeit unten entfällt – steht nun in der Überschrift)
-
-  svg += `</svg>`;
-
-  // Download
-  const dateiname = `gvp-konferenzzeiten_${monate[jetzt.getMonth()]}_${jetzt.getFullYear()}.svg`;
-  const blob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = dateiname;
-  a.click();
-  URL.revokeObjectURL(url);
-};
-
 });
   
   // --- Modal öffnen/schließen ---
@@ -1247,5 +1216,6 @@ function runFireworks(durationMs = 5000) {
 </script>
 </body>
 </html>
+
 
 
