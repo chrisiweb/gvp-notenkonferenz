@@ -335,7 +335,7 @@
     <div class="modal-actions">
       <div class="row-left">
         <button id="reverseBtn" class="btn-ghost" style="border-color:#3b82f6;color:#3b82f6;">
-          Klassenreihenfolge umdrehen
+          Reihenfolge umdrehen
         </button>
         <button id="cancelEditBtn" class="btn-ghost">Abbrechen</button>
         <button id="saveEditBtn" class="btn-primary">Speichern</button>
@@ -976,39 +976,43 @@ btn.onclick = () => {
   window.addEventListener("keydown", (e) => { if (e.key === "Escape" && listModal.classList.contains("open")) closeListEditor(); });
 
   // Klassenreihenfolge umdrehen
-  document.getElementById("reverseBtn").onclick = () => {
-    const lines = editorTextarea.value
-      .split("\n")
-      .map(s => s.trim())
-      .filter(Boolean);
-  
-    if (lines.length === 0) {
-      alert("Keine Klassen vorhanden.");
-      return;
-    }
-  
-    const ok = confirm("Soll die Reihenfolge der Klassen jahrgangsweise sortiert werden?");
-    if (!ok) return;
-  
-    // 1) Jahrgang numerisch absteigend sortieren
-    // 2) Innerhalb eines Jahrgangs alphabetisch sortieren
-    const sorted = lines.sort((a, b) => {
-      const gradeA = parseInt(a);
-      const gradeB = parseInt(b);
-  
-      // Jahrgänge vergleichen
-      if (gradeA !== gradeB) {
-        return gradeB - gradeA; // höherer Jahrgang zuerst
-      }
-  
-      // Rest vergleichen (AT, B, S ...)
-      const restA = a.replace(/^\d+/, "");
-      const restB = b.replace(/^\d+/, "");
-      return restA.localeCompare(restB, "de");
-    });
-  
-    editorTextarea.value = sorted.join("\n");
-  };
+document.getElementById("reverseBtn").onclick = () => {
+  const lines = editorTextarea.value
+    .split("\n")
+    .map(s => s.trim())
+    .filter(Boolean);
+
+  if (lines.length === 0) {
+    alert("Keine Klassen vorhanden.");
+    return;
+  }
+
+  // Hilfsfunktionen
+  const sortAsc = arr => arr.slice().sort((a, b) => {
+    const gradeA = parseInt(a);
+    const gradeB = parseInt(b);
+    if (gradeA !== gradeB) return gradeA - gradeB;  // Jahrgang aufsteigend
+    return a.localeCompare(b, "de", { numeric:true });
+  });
+
+  const sortDesc = arr => arr.slice().sort((a, b) => {
+    const gradeA = parseInt(a);
+    const gradeB = parseInt(b);
+    if (gradeA !== gradeB) return gradeB - gradeA;  // Jahrgang absteigend
+    return a.localeCompare(b, "de", { numeric:true });
+  });
+
+  // Bestimmen, welche Version aktuell ist:
+  const asc = sortAsc(lines);
+  const desc = sortDesc(lines);
+
+  const isCurrentlyAsc = JSON.stringify(lines) === JSON.stringify(asc);
+
+  // Umschalten
+  const newList = isCurrentlyAsc ? desc : asc;
+
+  editorTextarea.value = newList.join("\n");
+};
 
 
   // Speichern aus dem Modal
@@ -1157,6 +1161,7 @@ function runFireworks(durationMs = 5000) {
 </script>
 </body>
 </html>
+
 
 
 
