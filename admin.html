@@ -6,14 +6,6 @@
   <title>Admin GvP Notenkonferenz Liveticker</title>
   <meta name="robots" content="noindex,nofollow" />
   <style>
-  
-#fireworksCanvas {
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  pointer-events: none; /* Klicks nicht blockieren */
-}
-
     :root {
       --bg: #0b1020;
       --fg: #eaf2ff;
@@ -52,10 +44,8 @@
       min-width: 140px; min-height: 110px;
       display: flex; justify-content: center; align-items: center;
     }
-    .big-button:active{ transform:translateY(1px); }
     .btn-primary { background:#3b82f6; color:white; }
     .btn-red { background:#ef4444; color:white; }
-    .btn-red:active{ transform:translateY(1px); }
     .row-space { display:flex; gap:8px; align-items:center; justify-content:space-between; margin-top:10px; }
     .row-left  { display:flex; gap:8px; align-items:center; }
     .label { font-weight:600; margin-top:12px; display:block; }
@@ -125,7 +115,6 @@
 
     .modal-actions { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-top:10px; }
     .btn-ghost { background: transparent; color: var(--fg); border: 1px solid var(--card-bd); }
-    .btn-ghost:active{ transform:translateY(1px); }
 
     /* Buttons im Modal: umbrechen erlauben */
     .modal-actions .row-left {
@@ -841,11 +830,6 @@ startNextBtn.onclick = async () => {
   startNextBtn.disabled = true;
   startNextBtn.setAttribute("aria-disabled", "true");
 
-  // 4) Firework-Trigger setzen (einmalig, per Zeitstempel)
-  await update(ref(db, "anzeige"), {
-    celebrateAt: serverNow() // ms (Serverzeit via Offset)
-  });
-
     return; // Ende – NICHT weitermachen
   }
 
@@ -1066,25 +1050,6 @@ requestAnimationFrame(timerLoop);
 
 
 </script>
-<canvas id="fireworksCanvas" style="display:none"></canvas>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
