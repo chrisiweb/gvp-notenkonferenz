@@ -977,12 +977,39 @@ btn.onclick = () => {
 
   // Klassenreihenfolge umdrehen
   document.getElementById("reverseBtn").onclick = () => {
-    const lines = editorTextarea.value.split("\n").map(s => s.trim()).filter(Boolean);
-    if (lines.length === 0) { alert("Keine Klassen vorhanden."); return; }
-    const ok = confirm("Soll die Reihenfolge der Klassen wirklich umgedreht werden?");
+    const lines = editorTextarea.value
+      .split("\n")
+      .map(s => s.trim())
+      .filter(Boolean);
+  
+    if (lines.length === 0) {
+      alert("Keine Klassen vorhanden.");
+      return;
+    }
+  
+    const ok = confirm("Soll die Reihenfolge der Klassen jahrgangsweise sortiert werden?");
     if (!ok) return;
-    editorTextarea.value = lines.reverse().join("\n");
+  
+    // 1) Jahrgang numerisch absteigend sortieren
+    // 2) Innerhalb eines Jahrgangs alphabetisch sortieren
+    const sorted = lines.sort((a, b) => {
+      const gradeA = parseInt(a);
+      const gradeB = parseInt(b);
+  
+      // Jahrgänge vergleichen
+      if (gradeA !== gradeB) {
+        return gradeB - gradeA; // höherer Jahrgang zuerst
+      }
+  
+      // Rest vergleichen (AT, B, S ...)
+      const restA = a.replace(/^\d+/, "");
+      const restB = b.replace(/^\d+/, "");
+      return restA.localeCompare(restB, "de");
+    });
+  
+    editorTextarea.value = sorted.join("\n");
   };
+
 
   // Speichern aus dem Modal
   saveEditBtn.onclick = async () => {
@@ -1130,6 +1157,7 @@ function runFireworks(durationMs = 5000) {
 </script>
 </body>
 </html>
+
 
 
 
