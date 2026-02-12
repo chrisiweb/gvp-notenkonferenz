@@ -6,6 +6,14 @@
   <title>Admin GvP Notenkonferenz Liveticker</title>
   <meta name="robots" content="noindex,nofollow" />
   <style>
+  
+#fireworksCanvas {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none; /* Klicks nicht blockieren */
+}
+
     :root {
       --bg: #0b1020;
       --fg: #eaf2ff;
@@ -44,6 +52,7 @@
       min-width: 140px; min-height: 110px;
       display: flex; justify-content: center; align-items: center;
     }
+    .big-button:active{ transform:translateY(1px); }
     .btn-primary { background:#3b82f6; color:white; }
     .btn-red { background:#ef4444; color:white; }
     .btn-red:active{ transform:translateY(1px); }
@@ -832,6 +841,11 @@ startNextBtn.onclick = async () => {
   startNextBtn.disabled = true;
   startNextBtn.setAttribute("aria-disabled", "true");
 
+  // 4) Firework-Trigger setzen (einmalig, per Zeitstempel)
+  await update(ref(db, "anzeige"), {
+    celebrateAt: serverNow() // ms (Serverzeit via Offset)
+  });
+
     return; // Ende – NICHT weitermachen
   }
 
@@ -1052,8 +1066,10 @@ requestAnimationFrame(timerLoop);
 
 
 </script>
+<canvas id="fireworksCanvas" style="display:none"></canvas>
 </body>
 </html>
+
 
 
 
