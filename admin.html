@@ -23,6 +23,22 @@
     .box { background: var(--card-bg); padding:20px; border-radius:12px; max-width:900px; margin:auto; border:1px solid var(--card-bd); }
     input { width:100%; padding:10px; border-radius:8px; background:#0f1428; color:#eaf2ff; border:1px solid var(--card-bd); }
     button { padding:10px 16px; border:0; border-radius:8px; cursor:pointer; font-size:16px; }
+
+
+  .export-icon{
+    width:36px; height:36px;
+    padding:0;
+    border-radius:10px;
+    border:1px solid #22c55e;
+    background-color:#0f1428 !important;  /* dunkelblau */
+    display:inline-flex; align-items:center; justify-content:center;
+    box-shadow:none !important;
+    appearance:none; -webkit-appearance:none; /* UA-Styles neutralisieren */
+  }
+  /* Hover/Active optional */
+  .export-icon:hover{ border-color:#34d399; }
+  .export-icon:active{ transform:translateY(1px); }
+
     .big-button {
       padding: 20px 32px !important;
       font-size: 24px !important;
@@ -216,24 +232,8 @@
       .card .room  { font-size: clamp(12px, 3.2vw, 16px); }
       .btn-primary, .btn-red, .btn-ghost { font-size: 15px; }
     }
-
-
-.export-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
-    background: #0f1428;
-    border: 1px solid #22c55e;
-    background-image: url("download.svg");
-    background-repeat: no-repeat;
-    background-position: center;
-    background-size: 28px;
-    cursor: pointer;
-    padding: 0;
-}
-
-
-  </style>
+      
+</style>
 </head>
 <body>
 <div class="box">
@@ -296,23 +296,17 @@
     <div id="gesamtZeit" class="muted" style="margin-top:4px;"></div>
 
   <div style="margin-top:10px">
-<button id="exportBtn"
-        class="export-icon"
-        title="Konferenzzeiten exportieren">
-
-<svg xmlns="http://www.w3.org/2000/svg" 
-     viewBox="0 0 24 24" 
-     stroke="white" 
-     stroke-width="2"
-     fill="none"
-     stroke-linecap="round"
-     stroke-linejoin="round"
-     width="28" height="28">
-  <path d="M12 3v12"/>
-  <path d="M6 9l6 6l6-6"/>
-  <path d="M5 17h14a2 2 0 0 1 2 2v2H3v-2a2 2 0 0 1 2-2z"/>
-</svg>
-
+<button id="exportBtn" class="export-icon" title="Konferenzzeiten exportieren">
+  <svg xmlns="http://www.w3.org/2000/svg"
+       viewBox="0 0 24 24"
+       width="22" height="22"
+       stroke="white" stroke-width="2"
+       fill="none" stroke-linecap="round" stroke-linejoin="round"
+       aria-hidden="true" focusable="false">
+    <path d="M12 3v12"/>
+    <path d="M6 9l6 6l6-6"/>
+    <path d="M5 17h14a2 2 0 0 1 2 2v2H3v-2a2 2 0 0 1 2-2z"/>
+  </svg>
 </button>
   </div>
   </div>
@@ -1059,6 +1053,7 @@ requestAnimationFrame(timerLoop);
 </script>
 </body>
 </html>
+
 
 
 
