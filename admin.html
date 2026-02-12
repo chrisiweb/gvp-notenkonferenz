@@ -987,6 +987,9 @@ document.getElementById("reverseBtn").onclick = () => {
     return;
   }
 
+  const ok = confirm("Soll die Reihenfolge der Klassen umgedreht werden?");
+  if (!ok) return;
+
   // Hilfsfunktionen
   const sortAsc = arr => arr.slice().sort((a, b) => {
     const gradeA = parseInt(a);
@@ -1161,6 +1164,7 @@ function runFireworks(durationMs = 5000) {
 </script>
 </body>
 </html>
+
 
 
 
